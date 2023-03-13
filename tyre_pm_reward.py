@@ -1,4 +1,4 @@
-def tyre_pm_reward(ts, alpha) -> list[float]:
+def tyre_pm_reward(ts, alpha=0.5) -> list[float]:
     """Custom reward function returning tyre emissions.
     
     Args:
