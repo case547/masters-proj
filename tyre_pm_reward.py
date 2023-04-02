@@ -1,4 +1,4 @@
-def tyre_pm_reward(ts, alpha=0.5) -> list[float]:
+def tyre_pm_reward(ts, alpha=0.5) -> float:
     """Custom reward function returning tyre emissions.
     
     Args:
@@ -7,23 +7,16 @@ def tyre_pm_reward(ts, alpha=0.5) -> list[float]:
     """
     tyre_pm_per_lane = []
 
-    for lane in ts.lanes:
-        veh_list = ts.sumo.lane.getLastStepVehicleIDs(lane)
-        acceleration = 0.
+    for ts_lane in ts.lanes:
+        # Get IDs of vehicles on this lane in last simulation step 
+        veh_list = ts.sumo.lane.getLastStepVehicleIDs(ts_lane)
+        
+        lane_tyre_pm = 0.
 
         for veh in veh_list:
-            veh_lane = ts.sumo.vehicle.getLaneID(veh)
             veh_acc = ts.sumo.vehicle.getAcceleration(veh)
-            
-            if veh not in ts.env.vehicles:
-                ts.env.vehicles[veh] = {veh_lane: veh_acc}
-            else:
-                ts.env.vehicles[veh][veh_lane] = veh_acc - sum(
-                    [ts.env.vehicles[veh][l] for l in ts.env.vehicles[veh].keys() if l != veh_lane]
-                )
-        
-            acceleration += ts.env.vehicles[veh][veh_lane]
+            lane_tyre_pm += alpha * abs(veh_acc)
 
-    tyre_pm_per_lane.append(alpha * acceleration)
+        tyre_pm_per_lane.append(lane_tyre_pm)
 
     return -sum(tyre_pm_per_lane)
