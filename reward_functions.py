@@ -1,28 +1,39 @@
 from sumo_rl import TrafficSignal
 
-def total_abs_accel(ts: TrafficSignal) -> float:
-    """Returns the negative of the total absolute acceleration of vehicles in the intersection."""
-    reward = 0.
+def tyre_pm_reward(ts: TrafficSignal, alpha=1.0) -> float:
+    """Return the reward based on tyre PM emission.
+    
+    Tyre PM emission is assumed to be linearly related to the vehicles'
+    absolute acceleration, and the penalty is calculated as the negative
+    of the total absolute acceleration of vehicles in the intersection.
+    
+    Keyword arguments
+        ts: the TrafficSignal object
+        alpha: coefficient mapping acceleration to tyre PM emission (default 1.0)
+    """
+    tyre_pm = 0.
     vehs = ts._get_veh_list()
 
     for v in vehs:
         accel = ts.sumo.vehicle.getAcceleration(v)
-        reward -= abs(accel)
+        tyre_pm -= alpha * abs(accel)
 
-    return reward
+    return tyre_pm
 
-def mean_abs_accel(ts: TrafficSignal) -> float:
-    """Returns the negative of the mean absolute acceleration of vehicles in the intersection."""
-    reward = 0.
-    vehs = ts._get_veh_list()
+def tyre_pm_and_delay(ts: TrafficSignal, alpha=1.0) -> float:
+    """Return the reward summing tyre PM and change in total delay.
+    
+    Keyword arguments
+        ts: the TrafficSignal object
+        alpha: coefficient mapping acceleration to tyre PM emission (default 1.0)
+    """
+    accel_reward = tyre_pm_reward(ts, alpha)
 
-    for v in vehs:
-        accel += ts.sumo.vehicle.getAcceleration(v)
-        reward -= abs(accel)
+    accumulated_wait = -sum(ts.get_accumulated_waiting_time_per_lane()) / 100
+    wait_time_reward = ts.last_measure - accumulated_wait
+    ts.last_measure = accumulated_wait
 
-    reward /= len(vehs)
-
-    return reward
+    return accel_reward + wait_time_reward
 
 
 
