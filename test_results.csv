@@ -1,2 +1,3 @@
 net_file,test_number,reward_function,untrained_reward,trained_reward
-'nets\\2way-single-intersection\\single-intersection.net.xml',1,abs_accel,-30608.180122,-28780.45776
+nets\2way-single-intersection\single-intersection.net.xml,1,<function abs_accel at 0x0000026DC8C725E0>,-30608.180122,-28780.45776
+nets\2way-single-intersection\single-intersection.net.xml,2,<function abs_accel at 0x0000026DC8C725E0>,-28913.718541,-8924.633105
