@@ -1,3 +1,4 @@
 net_file,test_number,reward_function,untrained_reward,trained_reward
 nets\2way-single-intersection\single-intersection.net.xml,1,<function abs_accel at 0x0000026DC8C725E0>,-30608.180122,-28780.45776
 nets\2way-single-intersection\single-intersection.net.xml,2,<function abs_accel at 0x0000026DC8C725E0>,-28913.718541,-8924.633105
+nets\2way-single-intersection\single-intersection.net.xml,3,<function tyre_pm_and_delay at 0x0000025D99E7CA60>,-230628.448622,-27700.45776
