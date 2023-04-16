@@ -90,20 +90,11 @@ def evaluate(
     episode_starts = np.ones((env.num_envs,), dtype=bool)
 
     writer = SummaryWriter(tb_log_dir)
+    stats = get_stats(env.ts_ids)
+    writer.add_scalars("eval", stats, current_lengths[0])
+    writer.flush()
 
     while (episode_counts < episode_count_targets).any():
-        stats = defaultdict(int)
-        for ts in env.ts_ids:
-            stats["tyre_pm"] += get_tyre_pm(ts)
-            stats["accum_wait_time"] += sum(ts.get_accumulated_waiting_time_per_lane())
-            stats["wait_time"] += get_total_waiting_time(ts)
-            stats["queued"] += ts.get_total_queued()
-            stats["avg_speed"] += ts.get_average_speed()
-            stats["pressure"] += ts.get_pressure()
-
-        writer.add_scalars("eval", stats, current_lengths[0])
-        writer.flush()
-
         actions, states = model.predict(
             observations,  # type: ignore[arg-type]
             state=states,
@@ -113,6 +104,9 @@ def evaluate(
         new_observations, rewards, dones, infos = env.step(actions)
         current_rewards += rewards
         current_lengths += 1
+
+        stats = get_stats(env.ts_ids)
+        writer.add_scalars("eval", stats, current_lengths[0])
 
         for i in range(n_envs):
             if episode_counts[i] < episode_count_targets[i]:
@@ -150,17 +144,6 @@ def evaluate(
         if render:
             env.render()
 
-    stats = defaultdict(int)
-    for ts in env.ts_ids:
-        stats["tyre_pm"] += get_tyre_pm(ts)
-        stats["pressure"] += ts.get_pressure()
-        stats["avg_speed"] += ts.get_average_speed()
-        stats["queued"] += ts.get_total_queued()
-        stats["accum_wait_time"] += sum(ts.get_accumulated_waiting_time_per_lane())
-        stats["wait_time"] += get_total_waiting_time(ts)
-
-    writer.add_scalars("eval", stats, current_lengths[0])
-    writer.flush()
     writer.close()
 
     mean_reward = np.mean(episode_rewards)
@@ -170,6 +153,22 @@ def evaluate(
     if return_episode_rewards:
         return episode_rewards, episode_lengths
     return mean_reward, std_reward
+
+
+def get_stats(ts_ids: List):
+    """Collect statistics summed over all traffic light agents."""
+    stats = defaultdict(int)
+    
+    # Sum stats over all traffic light agents
+    for ts in ts_ids:
+        stats["tyre_pm"] += get_tyre_pm(ts)
+        stats["pressure"] += ts.get_pressure()
+        stats["avg_speed"] += ts.get_average_speed()
+        stats["queued"] += ts.get_total_queued()
+        stats["accum_wait_time"] += sum(ts.get_accumulated_waiting_time_per_lane())
+        stats["wait_time"] += get_total_waiting_time(ts)
+        
+    return stats
 
 
 def get_total_waiting_time(ts: TrafficSignal) -> float:
