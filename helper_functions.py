@@ -91,7 +91,8 @@ def evaluate(
 
     writer = SummaryWriter(tb_log_dir)
     stats = get_stats(env.ts_ids)
-    writer.add_scalars("eval", stats, current_lengths[0])
+    for key, val in stats.items():
+        writer.add_scalar(f"eval/{key}", val, current_lengths[0])
     writer.flush()
 
     while (episode_counts < episode_count_targets).any():
@@ -106,7 +107,9 @@ def evaluate(
         current_lengths += 1
 
         stats = get_stats(env.ts_ids)
-        writer.add_scalars("eval", stats, current_lengths[0])
+        for key, val in stats.items():
+            writer.add_scalar(f"eval/{key}", val, current_lengths[0])
+        writer.flush()
 
         for i in range(n_envs):
             if episode_counts[i] < episode_count_targets[i]:
