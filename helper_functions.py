@@ -90,10 +90,9 @@ def evaluate(
     episode_starts = np.ones((env.num_envs,), dtype=bool)
 
     writer = SummaryWriter(tb_log_dir)
-    stats = get_stats(env.ts_ids)
+    stats = get_stats(env.get_attr("traffic_signals"))
     for key, val in stats.items():
         writer.add_scalar(f"eval/{key}", val, current_lengths[0])
-    writer.flush()
 
     while (episode_counts < episode_count_targets).any():
         actions, states = model.predict(
@@ -106,10 +105,9 @@ def evaluate(
         current_rewards += rewards
         current_lengths += 1
 
-        stats = get_stats(env.ts_ids)
+        stats = get_stats(env.get_attr("traffic_signals"))
         for key, val in stats.items():
             writer.add_scalar(f"eval/{key}", val, current_lengths[0])
-        writer.flush()
 
         for i in range(n_envs):
             if episode_counts[i] < episode_count_targets[i]:
@@ -158,18 +156,23 @@ def evaluate(
     return mean_reward, std_reward
 
 
-def get_stats(ts_ids: List):
-    """Collect statistics summed over all traffic light agents."""
+def get_stats(traffic_signals: List[Dict]):
+    """Collect statistics summed over all traffic light agents.
+    
+    Keyword arguments
+        traffic_signals: a list of dictionaries per env containing id/object pairs of traffic signals
+    """
     stats = defaultdict(int)
     
     # Sum stats over all traffic light agents
-    for ts in ts_ids:
-        stats["tyre_pm"] += get_tyre_pm(ts)
-        stats["pressure"] += ts.get_pressure()
-        stats["avg_speed"] += ts.get_average_speed()
-        stats["queued"] += ts.get_total_queued()
-        stats["accum_wait_time"] += sum(ts.get_accumulated_waiting_time_per_lane())
-        stats["wait_time"] += get_total_waiting_time(ts)
+    for ts_dict in traffic_signals:
+        for ts in ts_dict.values():
+            stats["tyre_pm"] += get_tyre_pm(ts)
+            stats["pressure"] += ts.get_pressure()
+            stats["avg_speed"] += ts.get_average_speed()
+            stats["queued"] += ts.get_total_queued()
+            stats["accum_wait_time"] += sum(ts.get_accumulated_waiting_time_per_lane())
+            stats["wait_time"] += get_total_waiting_time(ts)
         
     return stats
 
