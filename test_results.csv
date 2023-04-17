@@ -1,4 +1,4 @@
 net_file,test_number,reward_function,untrained_reward,trained_reward
 nets\2way-single-intersection\single-intersection.net.xml,1,tyre_pm_reward,-30608.180122,-28780.45776
 nets\2way-single-intersection\single-intersection.net.xml,2,tyre_pm_reward,-28913.718541,-8924.633105
-nets\2way-single-intersection\single-intersection.net.xml,3,tyre_pm_and_diff_wait_time,-544811.685435,-10004.633105
+nets\2way-single-intersection\single-intersection.net.xml,3,diff_accum_wait_time,-544811.685435,-10004.633105

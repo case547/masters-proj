@@ -1,30 +1,41 @@
-from helper_functions import get_tyre_pm
 from sumo_rl import TrafficSignal
 
+from helper_functions import get_total_waiting_time, get_tyre_pm
 
-def tyre_pm_reward(ts: TrafficSignal, alpha=1.0) -> float:
+
+def tyre_pm_reward(ts: TrafficSignal) -> float:
     """Return the reward as the amount of tyre PM emitted.
     
     Keyword arguments
         ts: the TrafficSignal object
-        alpha: coefficient mapping acceleration to tyre PM emission (default 1.0)
     """
-    return -get_tyre_pm(ts, alpha)
+    return -get_tyre_pm(ts)
 
 
-def tyre_pm_and_diff_wait_time(ts: TrafficSignal, alpha=1.0) -> float:
-    """Return the reward summing tyre PM and change in total delay.
+def diff_accum_wait_time(ts: TrafficSignal) -> float:
+    """Return the reward summing tyre PM and change in total accumulated waiting time.
     
     Keyword arguments
         ts: the TrafficSignal object
-        alpha: coefficient mapping acceleration to tyre PM emission (default 1.0)
     """
     ts_wait = sum(ts.get_accumulated_waiting_time_per_lane()) / 100.0
-    diff_wait_time_reward = ts.last_measure - ts_wait
+    congestion_reward = ts.last_measure - ts_wait
     ts.last_measure = ts_wait
 
-    return tyre_pm_reward(ts, alpha) + diff_wait_time_reward
+    return tyre_pm_reward(ts) + congestion_reward
 
+
+def diff_wait_time(ts: TrafficSignal) -> float:
+    """Return the reward summing tyre PM and change in total waiting time.
+    
+    Keyword arguments
+        ts: the TrafficSignal object
+    """
+    ts_wait = get_total_waiting_time(ts)
+    wait_time_reward = ts.last_measure - ts_wait
+    ts.last_measure = ts_wait
+
+    return tyre_pm_reward(ts) + wait_time_reward
 
 
 # Currently, trivial solution exploited where cars are just stopped;

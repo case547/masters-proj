@@ -186,14 +186,13 @@ def get_total_waiting_time(ts: TrafficSignal) -> float:
     return sum(ts.sumo.lane.getWaitingTime(lane) for lane in ts.lanes)
 
 
-def get_tyre_pm(ts: TrafficSignal, alpha=1.0) -> float:
+def get_tyre_pm(ts: TrafficSignal) -> float:
     """Return tyre PM emission based on absolute acceleration.
     
     Tyre PM emission and vehicle absolute acceleration are assumed to have a linear relationship.
 
     Keyword arguments
         ts: the TrafficSignal object
-        alpha: coefficient mapping acceleration to tyre PM emission (default 1.0)
     """
     tyre_pm = 0.
 
@@ -202,6 +201,6 @@ def get_tyre_pm(ts: TrafficSignal, alpha=1.0) -> float:
         
         for veh in veh_list:
             accel = ts.sumo.vehicle.getAcceleration(veh)
-            tyre_pm += alpha * abs(accel)
+            tyre_pm += abs(accel)
 
     return tyre_pm
