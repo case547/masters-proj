@@ -1,3 +1,4 @@
+import csv
 import warnings
 from collections import defaultdict
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
@@ -8,11 +9,13 @@ from stable_baselines3.common import type_aliases
 from stable_baselines3.common.vec_env import DummyVecEnv, VecEnv, VecMonitor, is_vecenv_wrapped
 from sumo_rl import TrafficSignal
 from torch.utils.tensorboard import SummaryWriter
+import traci
 
 
 def evaluate(
     model: "type_aliases.PolicyPredictor",
     env: Union[gym.Env, VecEnv],
+    csv_path: str,
     tb_log_dir: str,
     n_eval_episodes: int = 10,
     deterministic: bool = True,
@@ -90,9 +93,7 @@ def evaluate(
     episode_starts = np.ones((env.num_envs,), dtype=bool)
 
     writer = SummaryWriter(tb_log_dir)
-    stats = get_stats(env.get_attr("traffic_signals"))
-    for key, val in stats.items():
-        writer.add_scalar(f"eval/{key}", val, current_lengths[0] * env.get_attr("delta_time"))
+    record_stats(env.get_attr("traffic_signals"), csv_path, writer)
 
     while (episode_counts < episode_count_targets).any():
         actions, states = model.predict(
@@ -105,9 +106,7 @@ def evaluate(
         current_rewards += rewards
         current_lengths += 1
 
-        stats = get_stats(env.get_attr("traffic_signals"))
-        for key, val in stats.items():
-            writer.add_scalar(f"eval/{key}", val, current_lengths[0] * env.get_attr("delta_time"))
+        record_stats(env.get_attr("traffic_signals"), csv_path, writer)
 
         for i in range(n_envs):
             if episode_counts[i] < episode_count_targets[i]:
@@ -156,23 +155,34 @@ def evaluate(
     return mean_reward, std_reward
 
 
-def get_stats(traffic_signals: List[Dict]):
-    """Collect statistics summed over all traffic light agents.
+def record_stats(traffic_signals: List[Dict], csv_path: str, tb_writer: SummaryWriter):
+    """Collect statistics summed over all traffic light agents, and log to a CSV file and TensorBoard.
     
     Keyword arguments
         traffic_signals: a list of dictionaries per env containing id/object pairs of traffic signals
+        csv_path: the filepath of the CSV to which the stats will be logged
+        tb_writer: a SummaryWriter object to write event files for TensorBoard
     """
     stats = defaultdict(int)
     
     # Sum stats over all traffic light agents
     for ts_dict in traffic_signals:
         for ts in ts_dict.values():
-            stats["tyre_pm"] += get_tyre_pm(ts)
-            stats["pressure"] += ts.get_pressure()
-            stats["avg_speed"] += ts.get_average_speed()
-            stats["queued"] += ts.get_total_queued()
             stats["accum_wait_time"] += sum(ts.get_accumulated_waiting_time_per_lane())
+            stats["avg_speed"] += ts.get_average_speed()
+            stats["pressure"] += ts.get_pressure()
+            stats["queued"] += ts.get_total_queued()
+            stats["tyre_pm"] += get_tyre_pm(ts)
             stats["wait_time"] += get_total_waiting_time(ts)
+
+    # To CSV
+    with open(csv_path, "a", encoding="UTF8", newline="") as f:
+        csv_writer = csv.writer(f)
+        csv_writer.writerow(list(stats.values()))
+    
+    # To TensorBoard 
+    for key, val in stats.items():
+        tb_writer.add_scalar(f"eval/{key}", val, traci.simulation.getTime())
         
     return stats
 
