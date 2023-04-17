@@ -92,7 +92,7 @@ def evaluate(
     writer = SummaryWriter(tb_log_dir)
     stats = get_stats(env.get_attr("traffic_signals"))
     for key, val in stats.items():
-        writer.add_scalar(f"eval/{key}", val, current_lengths[0])
+        writer.add_scalar(f"eval/{key}", val, current_lengths[0] * env.get_attr("delta_time"))
 
     while (episode_counts < episode_count_targets).any():
         actions, states = model.predict(
@@ -107,7 +107,7 @@ def evaluate(
 
         stats = get_stats(env.get_attr("traffic_signals"))
         for key, val in stats.items():
-            writer.add_scalar(f"eval/{key}", val, current_lengths[0])
+            writer.add_scalar(f"eval/{key}", val, current_lengths[0] * env.get_attr("delta_time"))
 
         for i in range(n_envs):
             if episode_counts[i] < episode_count_targets[i]:
