@@ -93,9 +93,10 @@ def evaluate(
     episode_starts = np.ones((env.num_envs,), dtype=bool)
 
     writer = SummaryWriter(tb_log_dir)
-    record_stats(env.get_attr("traffic_signals"), csv_path, writer)
 
     while (episode_counts < episode_count_targets).any():
+        record_stats(env.get_attr("traffic_signals"), csv_path, writer)
+
         actions, states = model.predict(
             observations,  # type: ignore[arg-type]
             state=states,
@@ -105,8 +106,6 @@ def evaluate(
         new_observations, rewards, dones, infos = env.step(actions)
         current_rewards += rewards
         current_lengths += 1
-
-        record_stats(env.get_attr("traffic_signals"), csv_path, writer)
 
         for i in range(n_envs):
             if episode_counts[i] < episode_count_targets[i]:
@@ -175,14 +174,16 @@ def record_stats(traffic_signals: List[Dict], csv_path: str, tb_writer: SummaryW
             stats["tyre_pm"] += get_tyre_pm(ts)
             stats["wait_time"] += get_total_waiting_time(ts)
 
+    sim_time = traci.simulation.getTime()
+
     # To CSV
     with open(csv_path, "a", encoding="UTF8", newline="") as f:
         csv_writer = csv.writer(f)
-        csv_writer.writerow(list(stats.values()))
+        csv_writer.writerow([sim_time] + list(stats.values()))
     
     # To TensorBoard 
     for key, val in stats.items():
-        tb_writer.add_scalar(f"eval/{key}", val, traci.simulation.getTime())
+        tb_writer.add_scalar(f"eval/{key}", val, sim_time)
         
     return stats
 

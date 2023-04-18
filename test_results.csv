@@ -3,3 +3,4 @@ nets\2way-single-intersection\single-intersection.net.xml,1,tyre_pm_reward,-3060
 nets\2way-single-intersection\single-intersection.net.xml,2,tyre_pm_reward,-28913.718541,-8924.633105
 nets\2way-single-intersection\single-intersection.net.xml,3,diff_accum_wait_time,-544811.685435,-10004.633105
 nets\2way-single-intersection\single-intersection.net.xml,4,diff_wait_time,-10776595.990128,-535727.926257
+nets\2way-single-intersection\single-intersection.net.xml,4,diff_wait_time,-3949586.112993,-513222.059992
