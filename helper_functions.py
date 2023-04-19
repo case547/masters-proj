@@ -5,11 +5,11 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import gymnasium as gym
 import numpy as np
+import traci
 from stable_baselines3.common import type_aliases
 from stable_baselines3.common.vec_env import DummyVecEnv, VecEnv, VecMonitor, is_vecenv_wrapped
 from sumo_rl import TrafficSignal
 from torch.utils.tensorboard import SummaryWriter
-import traci
 
 
 def evaluate(
@@ -92,10 +92,15 @@ def evaluate(
     states = None
     episode_starts = np.ones((env.num_envs,), dtype=bool)
 
-    writer = SummaryWriter(tb_log_dir)
+    tb_writer = SummaryWriter(tb_log_dir)
+    with open(csv_path, "a", newline="") as f:
+        csv_writer = csv.writer(f)
+        header = ["sim_time","accum_wait_time","avg_speed","not_arrived",
+                  "pressure","queued","tyre_pm","wait_time"]
+        csv_writer.writerow(header)
 
     while (episode_counts < episode_count_targets).any():
-        record_stats(env.get_attr("traffic_signals"), csv_path, writer)
+        record_stats(env.get_attr("traffic_signals"), csv_path, tb_writer)
 
         actions, states = model.predict(
             observations,  # type: ignore[arg-type]
@@ -143,7 +148,7 @@ def evaluate(
         if render:
             env.render()
 
-    writer.close()
+    tb_writer.close()
 
     mean_reward = np.mean(episode_rewards)
     std_reward = np.std(episode_rewards)
@@ -169,6 +174,7 @@ def record_stats(traffic_signals: List[Dict], csv_path: str, tb_writer: SummaryW
         for ts in ts_dict.values():
             stats["accum_wait_time"] += sum(ts.get_accumulated_waiting_time_per_lane())
             stats["avg_speed"] += ts.get_average_speed()
+            stats["not_arrived"] += traci.simulation.getMinExpectedNumber()
             stats["pressure"] += ts.get_pressure()
             stats["queued"] += ts.get_total_queued()
             stats["tyre_pm"] += get_tyre_pm(ts)
@@ -177,7 +183,7 @@ def record_stats(traffic_signals: List[Dict], csv_path: str, tb_writer: SummaryW
     sim_time = traci.simulation.getTime()
 
     # To CSV
-    with open(csv_path, "a", encoding="UTF8", newline="") as f:
+    with open(csv_path, "a", newline="") as f:
         csv_writer = csv.writer(f)
         csv_writer.writerow([sim_time] + list(stats.values()))
     
