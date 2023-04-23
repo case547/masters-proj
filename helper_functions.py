@@ -167,7 +167,7 @@ def record_stats(traffic_signals: List[Dict], csv_path: str, tb_writer: SummaryW
         csv_path: the filepath of the CSV to which the stats will be logged
         tb_writer: a SummaryWriter object to write event files for TensorBoard
     """
-    stats = defaultdict(int)
+    stats = defaultdict(float)
     
     # Sum stats over all traffic light agents
     for ts_dict in traffic_signals:
@@ -181,6 +181,7 @@ def record_stats(traffic_signals: List[Dict], csv_path: str, tb_writer: SummaryW
             stats["wait_time"] += get_total_waiting_time(ts)
 
     sim_time = traci.simulation.getTime()
+    delta_t = traci.simulation.getDeltaT()
 
     # To CSV
     with open(csv_path, "a", newline="") as f:
@@ -189,7 +190,7 @@ def record_stats(traffic_signals: List[Dict], csv_path: str, tb_writer: SummaryW
     
     # To TensorBoard 
     for key, val in stats.items():
-        tb_writer.add_scalar(f"eval/{key}", val, sim_time)
+        tb_writer.add_scalar(f"eval/{key}", val, sim_time/delta_t)
         
     return stats
 
