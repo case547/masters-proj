@@ -3,18 +3,17 @@ import warnings
 from collections import defaultdict
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
-import gymnasium as gym
 import numpy as np
 import traci
 from stable_baselines3.common import type_aliases
 from stable_baselines3.common.vec_env import DummyVecEnv, VecEnv, VecMonitor, is_vecenv_wrapped
-from sumo_rl import TrafficSignal
+from sumo_rl import SumoEnvironment, TrafficSignal
 from torch.utils.tensorboard import SummaryWriter
 
 
 def evaluate(
     model: "type_aliases.PolicyPredictor",
-    env: Union[gym.Env, VecEnv],
+    env: SumoEnvironment,
     csv_path: str,
     tb_log_dir: str,
     n_eval_episodes: int = 10,
@@ -219,6 +218,7 @@ def get_tyre_pm(ts: TrafficSignal) -> float:
         
         for veh in veh_list:
             accel = ts.sumo.vehicle.getAcceleration(veh)
-            tyre_pm += abs(accel)
+            # Assume acceleration has been constant for the past delta_time seconds
+            tyre_pm += abs(accel) * ts.delta_time
 
     return tyre_pm
