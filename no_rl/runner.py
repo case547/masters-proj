@@ -43,7 +43,13 @@ def run(folder, end_time=None, delta_t=1):
     num_steps = int(end_time / delta_t)
 
     for step in range(num_steps):
-        tyre_pm = 0  # in this time step
+        # Step simulation for delta_time seconds
+        for _ in range(delta_t):
+            traci.simulationStep()
+
+        # In this time step
+        tyre_pm = 0
+        arrived_num = traci.simulation.getArrivedNumber()
 
         for lane in controlled_lanes:
             vehicles = traci.lane.getLastStepVehicleIDs(lane)
@@ -51,24 +57,20 @@ def run(folder, end_time=None, delta_t=1):
                 accel = traci.vehicle.getAcceleration(v)
                 tyre_pm += abs(accel) * delta_t
 
-        # Update counters    
-        tyre_pm_cumulative += tyre_pm
-        arrived_so_far += traci.simulation.getArrivedNumber()
-
         # Log to CSV
         with open(os.path.join(folder,f"results_{delta_t}.csv"), "a", newline="") as f:
             csv_writer = csv.writer(f)
 
             sim_time = step * delta_t  # can also use traci.simulation.getTime()
-            csv_writer.writerow([sim_time, arrived_so_far, tyre_pm, tyre_pm_cumulative])
+            csv_writer.writerow([sim_time, arrived_num, tyre_pm])
+
+        # Update counters    
+        tyre_pm_cumulative += tyre_pm
+        arrived_so_far += arrived_num
 
         # Log to TensorBoard
         tb_writer.add_scalar("baseline/arrived", arrived_so_far, step)
         tb_writer.add_scalar("baseline/tyre_pm", tyre_pm_cumulative, step)
-
-        # Step simulation for delta_time seconds
-        for _ in range(delta_t):
-            traci.simulationStep()
     
     tb_writer.close()
     traci.close()
