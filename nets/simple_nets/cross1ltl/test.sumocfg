@@ -20,18 +20,17 @@ SPDX-License-Identifier: EPL-2.0 OR GPL-2.0-or-later
         <route-files value="input_routes.rou.xml"/>
     </input>
 
+    <time>
+        <begin value="0"/>
+        <end value="1200"/>
+    </time>
+
     <output>
         <write-license value="true"/>
     </output>
 
     <processing>
         <time-to-teleport value="-1"/>
-        <default.speeddev value="0"/>
     </processing>
-
-    <report>
-        <duration-log.disable value="true"/>
-        <no-step-log value="true"/>
-    </report>
 
 </configuration>
