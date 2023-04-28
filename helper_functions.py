@@ -10,6 +10,8 @@ from stable_baselines3.common.vec_env import DummyVecEnv, VecEnv, VecMonitor, is
 from sumo_rl import SumoEnvironment, TrafficSignal
 from torch.utils.tensorboard import SummaryWriter
 
+from sim_listener import SimListener
+
 
 def evaluate(
     model: "type_aliases.PolicyPredictor",
@@ -42,7 +44,7 @@ def evaluate(
     :param model: The RL agent you want to evaluate. This can be any object
         that implements a `predict` method, such as an RL algorithm (``BaseAlgorithm``)
         or policy (``BasePolicy``).
-    :param env: The gym environment or ``VecEnv`` environment.
+    :param env: The Sumo environment.
     :param tb_log_dir: The Tensorboard save directory location.
     :param n_eval_episodes: Number of episode to evaluate the agent
     :param deterministic: Whether to use deterministic or stochastic actions
@@ -91,16 +93,15 @@ def evaluate(
     states = None
     episode_starts = np.ones((env.num_envs,), dtype=bool)
 
-    tb_writer = SummaryWriter(tb_log_dir)
-    with open(csv_path, "a", newline="") as f:
+    with open(csv_path, "w", newline="") as f:
         csv_writer = csv.writer(f)
-        header = ["sim_time","accum_wait_time","avg_speed","not_arrived",
-                  "pressure","queued","tyre_pm","wait_time"]
-        csv_writer.writerow(header)
+        csv_writer.writerow(["sim_time", "arrived", "avg_speed",
+                                "pressure", "queued", "tyre_pm", "wait_time"])
+
+    listener = SimListener(env, tb_log_dir, csv_path)
+    traci.addStepListener(listener)
 
     while (episode_counts < episode_count_targets).any():
-        record_stats(env.get_attr("traffic_signals"), csv_path, tb_writer)
-
         actions, states = model.predict(
             observations,  # type: ignore[arg-type]
             state=states,
@@ -147,8 +148,6 @@ def evaluate(
         if render:
             env.render()
 
-    tb_writer.close()
-
     mean_reward = np.mean(episode_rewards)
     std_reward = np.std(episode_rewards)
     if reward_threshold is not None:
@@ -173,7 +172,7 @@ def record_stats(traffic_signals: List[Dict], csv_path: str, tb_writer: SummaryW
         for ts in ts_dict.values():
             stats["accum_wait_time"] += sum(ts.get_accumulated_waiting_time_per_lane())
             stats["avg_speed"] += ts.get_average_speed()
-            stats["not_arrived"] += traci.simulation.getMinExpectedNumber()
+            stats["arrived"] += traci.simulation.getArrivedNumber()
             stats["pressure"] += ts.get_pressure()
             stats["queued"] += ts.get_total_queued()
             stats["tyre_pm"] += get_tyre_pm(ts)

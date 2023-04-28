@@ -68,7 +68,7 @@ def run(folder, end_time=None, delta_t=1):
         tyre_pm_cumulative += tyre_pm
         arrived_so_far += arrived_num
 
-        # Log to TensorBoard
+        # Log accumulations to TensorBoard
         tb_writer.add_scalar("baseline/arrived", arrived_so_far, step)
         tb_writer.add_scalar("baseline/tyre_pm", tyre_pm_cumulative, step)
     
