@@ -56,7 +56,7 @@ class SimListener(traci.StepListener):
                 stats["wait_time"] += get_total_waiting_time(ts)
 
         # Log to CSV
-        with open(os.path.join(self.csv_path), "a", encoding="mbcs", newline="") as f:
+        with open(self.csv_path, "a", encoding="ansi", newline="") as f:
             csv_writer = csv.writer(f)
             csv_writer.writerow([sim_time] + list(stats.values()))
 

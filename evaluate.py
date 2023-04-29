@@ -92,7 +92,7 @@ def evaluate(
     episode_starts = np.ones((env.num_envs,), dtype=bool)
 
     # Set up CSV
-    with open(csv_path, "w", encoding="mbcs", newline="") as f:
+    with open(csv_path, "w", encoding="ansi", newline="") as f:
         csv_writer = csv.writer(f)
         csv_writer.writerow(["sim_time", "arrived", "avg_speed",
                              "pressure", "queued", "tyre_pm", "wait_time"])
