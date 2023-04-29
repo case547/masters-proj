@@ -1,3 +1,5 @@
+from typing import Callable
+
 from sumo_rl import TrafficSignal
 
 
@@ -29,3 +31,22 @@ def get_tyre_pm(ts: TrafficSignal) -> float:
             tyre_pm += abs(accel) * ts.delta_time
 
     return tyre_pm
+
+
+def linear_schedule(initial_value: float) -> Callable[[float], float]:
+    """Linear schedule for learning rate and clipping parameter `clip_range`.
+
+    :param initial_value:
+    :return: schedule that computes
+      current learning rate depending on remaining progress
+    """
+    def func(progress_remaining: float) -> float:
+        """
+        Progress will decrease from 1 (beginning) to 0.
+
+        :param progress_remaining:
+        :return: current learning rate
+        """
+        return progress_remaining * initial_value
+
+    return func
