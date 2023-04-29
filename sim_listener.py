@@ -3,8 +3,9 @@ import os
 import sys
 from collections import defaultdict
 
-from torch.utils.tensorboard import SummaryWriter
 import traci
+from sumo_rl import SumoEnvironment
+from torch.utils.tensorboard import SummaryWriter
 
 # # Need to import python modules from the $SUMO_HOME/tools directory
 # if 'SUMO_HOME' in os.environ:
@@ -16,11 +17,13 @@ import traci
 from helper_functions import get_total_waiting_time, get_tyre_pm
 
 
+
 class SimListener(traci.StepListener):
-    def __init__(self, env, tb_log_dir, csv_path) -> None:
+    """Custom step listener for recording to Tensorboard and CSV."""
+    def __init__(self, env: SumoEnvironment, csv_path: str, tb_log_dir: str) -> None:
         self.env = env
-        self.tb_log_dir = tb_log_dir
         self.csv_path = csv_path
+        self.tb_log_dir = tb_log_dir
 
         # Get traffic lights and lanes they control
         tl_ids = list(traci.trafficlight.getIDList())
@@ -36,7 +39,9 @@ class SimListener(traci.StepListener):
         self.tb_writer = SummaryWriter(self.tb_log_dir)
 
 
-    def step(self) -> bool:
+    def step(self, t) -> bool:
+        sim_time = traci.simulation.getTime()
+
         # In this time step
         stats = defaultdict(float)
 
@@ -51,10 +56,8 @@ class SimListener(traci.StepListener):
                 stats["wait_time"] += get_total_waiting_time(ts)
 
         # Log to CSV
-        with open(os.path.join(self.csv_path), "a", newline="") as f:
+        with open(os.path.join(self.csv_path), "a", encoding="mbcs", newline="") as f:
             csv_writer = csv.writer(f)
-
-            sim_time = traci.simulation.getTime()
             csv_writer.writerow([sim_time] + list(stats.values()))
 
         # Update counters
@@ -69,25 +72,10 @@ class SimListener(traci.StepListener):
         tb_stats.remove("tyre_pm")
         for s in tb_stats:
             self.tb_writer.add_scalar(f"eval/{s}", stats[s], sim_time)
-
+            
         return True
-    
+
 
     def cleanUp(self) -> None:
         self.tb_writer.close()
-        traci.close()
         sys.stdout.flush()
-
-
-def run(folder, csv_title, delta_time=1):
-
-    num_steps = traci.simulation.getEndTime() / delta_time
-
-    for step in range(int(num_steps)):
-        
-        # Step simulation for delta_time seconds
-        for _ in range(delta_time):
-            traci.simulationStep()
-    
-    traci.close()
-    sys.stdout.flush()
