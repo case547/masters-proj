@@ -97,9 +97,8 @@ def evaluate(
         csv_writer.writerow(["sim_time", "arrived", "avg_speed",
                              "pressure", "queued", "tyre_pm", "wait_time"])
     
-    manager = traci.step.StepManager()
     listener = SimListener(env, csv_path, tb_log_dir)
-    listener_id = manager.addStepListener(listener)
+    listener_id = traci.addStepListener(listener)
 
     while (episode_counts < episode_count_targets).any():
         actions, states = model.predict(
@@ -148,7 +147,7 @@ def evaluate(
         if render:
             env.render()
 
-    manager.removeStepListener(listener_id)
+    traci.removeStepListener(listener_id)
 
     mean_reward = np.mean(episode_rewards)
     std_reward = np.std(episode_rewards)
