@@ -3,7 +3,7 @@ from sumo_rl import TrafficSignal
 from helper_functions import get_total_waiting_time, get_tyre_pm
 
 
-def tyre_pm_reward(ts: TrafficSignal) -> float:
+def tyre_pm(ts: TrafficSignal) -> float:
     """Return the reward as the amount of tyre PM emitted.
     
     Keyword arguments
@@ -22,21 +22,29 @@ def diff_accum_wait_time(ts: TrafficSignal) -> float:
     congestion_reward = ts.last_measure - ts_wait
     ts.last_measure = ts_wait
 
-    return tyre_pm_reward(ts) + congestion_reward
+    return tyre_pm(ts) + congestion_reward
 
 
 def diff_wait_time(ts: TrafficSignal) -> float:
-    """Return the reward summing tyre PM and change in total waiting time.
+    """Return the reward as change in total waiting time.
     
     Keyword arguments
         ts: the TrafficSignal object
     """
     ts_wait = get_total_waiting_time(ts)
-    wait_time_reward = ts.last_measure - ts_wait
+    reward = ts.last_measure - ts_wait
     ts.last_measure = ts_wait
 
-    return tyre_pm_reward(ts) + wait_time_reward
+    return reward
 
+
+def combined_reward(ts: TrafficSignal) -> float:
+    """Return the reward summing tyre PM and change in total waiting time.
+    
+    Keyword arguments
+        ts: the TrafficSignal object
+    """
+    return tyre_pm(ts) + diff_wait_time(ts)
 
 # Currently, trivial solution exploited where cars are just stopped;
 # Therefore need to add extra layer to prevent. Options are:
