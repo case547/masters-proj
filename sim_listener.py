@@ -75,7 +75,3 @@ class SimListener(traci.StepListener):
             
         return True
 
-
-    def cleanUp(self) -> None:
-        self.tb_writer.close()
-        sys.stdout.flush()

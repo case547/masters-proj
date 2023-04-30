@@ -1,5 +1,6 @@
 import csv
 import warnings
+import sys
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
@@ -98,7 +99,7 @@ def evaluate(
                              "pressure", "queued", "tyre_pm", "wait_time"])
     
     listener = SimListener(env, csv_path, tb_log_dir)
-    listener_id = traci.addStepListener(listener)
+    traci.addStepListener(listener)
 
     while (episode_counts < episode_count_targets).any():
         actions, states = model.predict(
@@ -147,7 +148,8 @@ def evaluate(
         if render:
             env.render()
 
-    traci.removeStepListener(listener_id)
+    listener.tb_writer.close()
+    sys.stdout.flush()
 
     mean_reward = np.mean(episode_rewards)
     std_reward = np.std(episode_rewards)
