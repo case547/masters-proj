@@ -15,8 +15,8 @@ from sim_listener import SimListener
 def evaluate(
     model: "type_aliases.PolicyPredictor",
     env: SumoEnvironment,
-    csv_path: str,
-    tb_log_dir: str,
+    csv_path: str = None,
+    tb_log_dir: str = None,
     n_eval_episodes: int = 10,
     deterministic: bool = True,
     render: bool = False,
@@ -93,10 +93,11 @@ def evaluate(
     episode_starts = np.ones((env.num_envs,), dtype=bool)
 
     # Set up CSV
-    with open(csv_path, "w", encoding="ansi", newline="") as f:
-        csv_writer = csv.writer(f)
-        csv_writer.writerow(["sim_time", "arrived", "avg_speed",
-                             "pressure", "queued", "tyre_pm", "wait_time"])
+    if csv_path:
+        with open(csv_path, "w", encoding="ansi", newline="") as f:
+            csv_writer = csv.writer(f)
+            csv_writer.writerow(["sim_time", "arrived", "avg_speed",
+                                "pressure", "queued", "tyre_pm", "wait_time"])
     
     listener = SimListener(env, csv_path, tb_log_dir)
     traci.addStepListener(listener)
@@ -123,7 +124,7 @@ def evaluate(
                 if callback is not None:
                     callback(locals(), globals())
 
-                if dones[i]:
+                if dones[i] or "terminal_observation" in info:
                     if is_monitor_wrapped:
                         # Atari wrapper can send a "done" signal when
                         # the agent loses a life, but it does not correspond
@@ -135,6 +136,10 @@ def evaluate(
                             episode_rewards.append(info["episode"]["r"])
                             episode_lengths.append(info["episode"]["l"])
                             # Only increment at the real end of an episode
+                            episode_counts[i] += 1
+                        elif "terminal_observation" in info:
+                            episode_rewards.append(current_rewards[i])
+                            episode_lengths.append(current_lengths[i])
                             episode_counts[i] += 1
                     else:
                         episode_rewards.append(current_rewards[i])
@@ -148,7 +153,8 @@ def evaluate(
         if render:
             env.render()
 
-    listener.tb_writer.close()
+    if tb_log_dir:
+        listener.tb_writer.close()
     sys.stdout.flush()
 
     mean_reward = np.mean(episode_rewards)
