@@ -1,9 +1,11 @@
 import csv
 from collections import defaultdict
+from typing import Union
 
 import traci
 from torch.utils.tensorboard import SummaryWriter
 from stable_baselines3.common.monitor import Monitor
+from stable_baselines3.common.vec_env import VecEnv, VecMonitor
 
 # # Need to import python modules from the $SUMO_HOME/tools directory
 # if 'SUMO_HOME' in os.environ:
@@ -15,16 +17,14 @@ from stable_baselines3.common.monitor import Monitor
 from helper_functions import get_total_waiting_time, get_tyre_pm
 
 
-
 class SimListener(traci.StepListener):
     """Custom step listener for recording to Tensorboard and CSV."""
-    def __init__(self, env: Monitor, csv_path: str = None, tb_log_dir: str = None) -> None:
+    def __init__(self, env: Union[Monitor, VecMonitor], csv_path: str = None, tb_log_dir: str = None) -> None:
         self.env = env
         self.csv_path = csv_path
 
         if tb_log_dir:
             self.tb_writer = SummaryWriter(tb_log_dir)  # prep TensorBoard
-
 
         # Get traffic lights and lanes they control
         tl_ids = list(traci.trafficlight.getIDList())
@@ -42,8 +42,12 @@ class SimListener(traci.StepListener):
         # In this time step
         stats = defaultdict(float)
 
-        # Sum stats over all traffic light agents
-        ts_dict = self.env.get_attr("traffic_signals")[0]
+        # Sum stats for traffic signals
+        if isinstance(self.env, VecEnv):
+            # Results same for any/all markov vector envs, because actions are deterministic(?)
+            ts_dict = self.env.unwrapped.vec_envs[-1].par_env.unwrapped.env.traffic_signals
+        else:
+            ts_dict = self.env.get_attr("traffic_signals")[0]
 
         for ts in ts_dict.values():
             stats["arrived"] += traci.simulation.getArrivedNumber()
@@ -72,6 +76,5 @@ class SimListener(traci.StepListener):
             tb_stats.remove("tyre_pm")
             for s in tb_stats:
                 self.tb_writer.add_scalar(f"eval/{s}", stats[s], sim_time)
-            
+         
         return True
-
