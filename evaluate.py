@@ -124,27 +124,14 @@ def evaluate(
                 if callback is not None:
                     callback(locals(), globals())
 
-                if dones[i] or "terminal_observation" in info:
-                    if is_monitor_wrapped:
-                        # Atari wrapper can send a "done" signal when
-                        # the agent loses a life, but it does not correspond
-                        # to the true end of episode
-                        if "episode" in info.keys():
-                            # Do not trust "done" with episode endings.
-                            # Monitor wrapper includes "episode" key in info if environment
-                            # has been wrapped with it. Use those rewards instead.
-                            episode_rewards.append(info["episode"]["r"])
-                            episode_lengths.append(info["episode"]["l"])
-                            # Only increment at the real end of an episode
-                            episode_counts[i] += 1
-                        elif "terminal_observation" in info:
-                            episode_rewards.append(current_rewards[i])
-                            episode_lengths.append(current_lengths[i])
-                            episode_counts[i] += 1
-                    else:
-                        episode_rewards.append(current_rewards[i])
-                        episode_lengths.append(current_lengths[i])
-                        episode_counts[i] += 1
+                # Note for vector env:
+                # In stable_baselines3\common\vec_env\vec_monitor.py > VecMonitor > step_wait()
+                # `done, _` --> `terminated, truncated`, and added `dones = terminated | truncated`
+
+                if dones[i]:
+                    episode_rewards.append(current_rewards[i])
+                    episode_lengths.append(current_lengths[i])
+                    episode_counts[i] += 1
                     current_rewards[i] = 0
                     current_lengths[i] = 0
 
