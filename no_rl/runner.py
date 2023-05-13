@@ -80,8 +80,8 @@ def run(folder, end_time=None, delta_t=1):
 
 def parse_options():
     parser = argparse.ArgumentParser()
-    parser.add_argument("file", help=".sumocfg file to run")
-    parser.add_argument("--dt", default=1, type=int, help=".sumocfg file to run")
+    parser.add_argument("file", help="SUMO configuration file to run")
+    parser.add_argument("--dt", default=1, type=int)
     parser.add_argument("--gui", action="store_true", help="run the GUI version of sumo")
     return parser.parse_args()
 
