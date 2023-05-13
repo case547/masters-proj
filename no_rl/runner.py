@@ -19,8 +19,8 @@ import traci
 from sumolib import checkBinary
 
 
-def run(folder, end_time=None, delta_t=1):
-    """Execute the TraCI control loop."""
+def run(net_name):
+    """Execute the baseline evaluation via TraCI."""
     # Get traffic lights and lanes they control
     tl_ids = list(traci.trafficlight.getIDList())
     controlled_lanes = []
@@ -30,58 +30,66 @@ def run(folder, end_time=None, delta_t=1):
     # Initialise cumulative counters
     tyre_pm_cumulative = 0
     arrived_so_far = 0
+
+    last_wait_time = 0
     
     # Prep TensorBoard and CSV
-    tb_writer = SummaryWriter(folder)
-    with open(os.path.join(folder,f"results_{delta_t}.csv"), "w", newline="") as f:
+    tb_writer = SummaryWriter(os.path.join("logs",net_name,"baseline"))
+    with open(os.path.join("no_rl",f"{net_name}.csv"), "w", newline="") as f:
         csv_writer = csv.writer(f)
-        csv_writer.writerow(["sim_time", "arrived", "tyre_pm"])
+        csv_writer.writerow(["sim_time", "arrived", "tyre_pm", "wait_time", "delta_wait_time"])
 
-    if not end_time:
-        end_time = traci.simulation.getEndTime()
-    assert end_time % delta_t == 0
-    num_steps = int(end_time / delta_t)
-
-    for step in range(num_steps):
-        # Step simulation for delta_time seconds
-        for _ in range(delta_t):
-            traci.simulationStep()
+    end_time = traci.simulation.getEndTime()
+    
+    for step in range(int(end_time)):
+        traci.simulationStep()
 
         # In this time step
-        tyre_pm = 0
         arrived_num = traci.simulation.getArrivedNumber()
+        tyre_pm = 0
+        wait_time = 0
 
         for lane in controlled_lanes:
             vehicles = traci.lane.getLastStepVehicleIDs(lane)
             for v in vehicles:
                 accel = traci.vehicle.getAcceleration(v)
-                tyre_pm += abs(accel) * delta_t
+                tyre_pm += abs(accel)
+
+            wait_time += traci.lane.getWaitingTime(lane)
+
+        diff_wait_time = wait_time - last_wait_time
+        last_wait_time = wait_time
 
         # Log to CSV
-        with open(os.path.join(folder,f"results_{delta_t}.csv"), "a", newline="") as f:
+        with open(os.path.join("no_rl",f"{net_name}.csv"), "a", newline="") as f:
             csv_writer = csv.writer(f)
 
-            sim_time = step * delta_t  # can also use traci.simulation.getTime()
-            csv_writer.writerow([sim_time, arrived_num, tyre_pm])
+            sim_time = step  # can also use traci.simulation.getTime()
+            csv_writer.writerow([sim_time, arrived_num, tyre_pm, wait_time, diff_wait_time])
 
-        # Update counters    
+        # Update counters
         tyre_pm_cumulative += tyre_pm
         arrived_so_far += arrived_num
 
-        # Log accumulations to TensorBoard
-        tb_writer.add_scalar("baseline/arrived", arrived_so_far, step)
-        tb_writer.add_scalar("baseline/tyre_pm", tyre_pm_cumulative, step)
+        # Log to TensorBoard
+        tb_writer.add_scalar("eval/arrived_so_far", arrived_so_far, step)
+        tb_writer.add_scalar("eval/tyre_pm_cumulative", tyre_pm_cumulative, step)
     
     tb_writer.close()
     traci.close()
-    print("Total tyre PM emitted:", tyre_pm_cumulative)
+    print("Vehicles arrived:", arrived_so_far)
+    print("Tyre PM emitted:", tyre_pm_cumulative)
+    print("Final wait time:", last_wait_time)
     sys.stdout.flush()
+
+    with open(os.path.join("no_rl","baseline_results.csv"), "a", newline="") as f:
+        csv_writer = csv.writer(f)
+        csv_writer.writerow([net_name, arrived_so_far, tyre_pm_cumulative, last_wait_time])
 
 
 def parse_options():
     parser = argparse.ArgumentParser()
     parser.add_argument("file", help="SUMO configuration file to run")
-    parser.add_argument("--dt", default=1, type=int)
     parser.add_argument("--gui", action="store_true", help="run the GUI version of sumo")
     return parser.parse_args()
 
@@ -101,4 +109,4 @@ if __name__ == "__main__":
     traci.start([sumo_binary, "-c", options.file])
     
     network = PurePath(options.file).parts[-2]
-    run(folder=os.path.join("no_rl", network), delta_t=options.dt)
+    run(network)
