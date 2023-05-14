@@ -27,8 +27,7 @@ def get_tyre_pm(ts: TrafficSignal) -> float:
         
         for veh in veh_list:
             accel = ts.sumo.vehicle.getAcceleration(veh)
-            # Assume acceleration has been constant for the past delta_time seconds
-            tyre_pm += abs(accel) * ts.delta_time
+            tyre_pm += abs(accel)
 
     return tyre_pm
 
@@ -37,14 +36,13 @@ def linear_schedule(initial_value: float) -> Callable[[float], float]:
     """Linear schedule for learning rate and clipping parameter `clip_range`.
 
     :param initial_value:
-    :return: schedule that computes
-      current learning rate depending on remaining progress
+    :return: schedule that computes current learning rate depending on remaining progress
     """
     def func(progress_remaining: float) -> float:
         """
         Progress will decrease from 1 (beginning) to 0.
 
-        :param progress_remaining:
+        :param progress_remaining
         :return: current learning rate
         """
         return progress_remaining * initial_value
