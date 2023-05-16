@@ -1,0 +1,9 @@
+net_file,test_number,reward_function,untrained_reward,trained_reward,train_time,hparam_set
+nets\2way-single-intersection\single-intersection.net.xml,1,tyre_pm_reward,-30608.180122,-28780.45776,,
+nets\2way-single-intersection\single-intersection.net.xml,2,tyre_pm_reward,-28913.718541,-8924.633105,,
+nets\2way-single-intersection\single-intersection.net.xml,3,diff_accum_wait_time,-544811.685435,-10004.633105,,
+nets\2way-single-intersection\single-intersection.net.xml,4,combined_reward,-3949586.112993,-513222.059992,,
+nets\simple_nets\cross1ltl\net.net.xml,1,tyre_pm_reward,-5797.319856,-5401.889468,1e6,
+nets\RESCO\grid4x4\grid4x4.net.xml,1,diff_wait_time,-205261.0,-80570.0,1e5,
+nets\RESCO\grid4x4\grid4x4.net.xml,2,combined_reward,-152094.86697170138,-144106.170947209,1000000.0,"rl_zoo3"
+nets\RESCO\grid4x4\grid4x4.net.xml,3,combined_reward,-245990.18501207232,-143693.29015433788,1000000.0,resco
