@@ -96,8 +96,8 @@ def evaluate(
     if csv_path:
         with open(csv_path, "w", encoding="ansi", newline="") as f:
             csv_writer = csv.writer(f)
-            csv_writer.writerow(["sim_time", "arrived", "avg_speed",
-                                "pressure", "queued", "tyre_pm", "wait_time"])
+            csv_writer.writerow(["sim_time", "arrived_num", "avg_speed",
+                                 "pressure", "queued", "tyre_pm", "waiting_time"])
     
     listener = SimListener(env, csv_path, tb_log_dir)
     traci.addStepListener(listener)
@@ -126,7 +126,8 @@ def evaluate(
 
                 # Note for vector env:
                 # In stable_baselines3\common\vec_env\vec_monitor.py > VecMonitor > step_wait()
-                # `done, _` --> `terminated, truncated`, and added `dones = terminated | truncated`
+                # `obs, rewards, dones, infos` --> `obs, rewards, terminated, truncated, infos`
+                # Added `dones = terminated | truncated`
 
                 if dones[i]:
                     episode_rewards.append(current_rewards[i])
