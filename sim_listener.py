@@ -55,12 +55,12 @@ class SimListener(traci.StepListener):
 
         # Sum stats for traffic signals
         for ts in self.ts_dict.values():
-            stats["arrived"] += traci.simulation.getArrivedNumber()
+            stats["arrived_num"] += traci.simulation.getArrivedNumber()
             stats["avg_speed"] += ts.get_average_speed()
             stats["pressure"] += ts.get_pressure()
             stats["queued"] += ts.get_total_queued()
             stats["tyre_pm"] += get_tyre_pm(ts)
-            stats["wait_time"] += get_total_waiting_time(ts)
+            stats["waiting_time"] += get_total_waiting_time(ts)
 
         # Log to CSV
         if self.csv_path:
@@ -74,8 +74,8 @@ class SimListener(traci.StepListener):
 
         # Log to TensorBoard
         if self.tb_writer:
-            self.tb_writer.add_scalar("eval/arrived", self.arrived_so_far, self.t_step)
-            self.tb_writer.add_scalar("eval/tyre_pm", self.tyre_pm_cumulative, self.t_step)
+            self.tb_writer.add_scalar("eval/arrived_so_far", self.arrived_so_far, self.t_step)
+            self.tb_writer.add_scalar("eval/tyre_pm_cumulative", self.tyre_pm_cumulative, self.t_step)
             tb_stats = list(stats.keys())
             tb_stats.remove("arrived")
             tb_stats.remove("tyre_pm")
