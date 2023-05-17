@@ -46,3 +46,18 @@ resco = {
     "ent_coef": 1e-3,
     "max_grad_norm": 0.5,
 }
+
+
+# Custom hyperparams - based on rl_zoo3 but more suited for 1M steps rather than 10M
+
+custom = {
+    "learning_rate": 2.5e-4,
+    "n_steps": 256,  # originally 128, but changed for n_steps be int multiple of batch_size
+    "batch_size": 256,
+    "n_epochs": 4,
+    # gamma=0.99 and gae_lambda=0.95 by default
+    "clip_range": 0.1,
+    "ent_coef": 0.01,
+    "vf_coef": 0.5,
+    # "n_envs": 8  # would go in env initialisation
+}
