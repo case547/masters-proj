@@ -70,16 +70,16 @@ class SimListener(traci.StepListener):
 
         # Update counters
         self.tyre_pm_cumulative += stats["tyre_pm"]
-        self.arrived_so_far += stats["arrived"]
+        self.arrived_so_far += stats["arrived_num"]
 
         # Log to TensorBoard
         if self.tb_writer:
-            self.tb_writer.add_scalar("eval/arrived_so_far", self.arrived_so_far, self.t_step)
-            self.tb_writer.add_scalar("eval/tyre_pm_cumulative", self.tyre_pm_cumulative, self.t_step)
+            self.tb_writer.add_scalar("stats/arrived_so_far", self.arrived_so_far, self.t_step)
+            self.tb_writer.add_scalar("stats/tyre_pm_cumulative", self.tyre_pm_cumulative, self.t_step)
             tb_stats = list(stats.keys())
-            tb_stats.remove("arrived")
+            tb_stats.remove("arrived_num")
             tb_stats.remove("tyre_pm")
             for s in tb_stats:
-                self.tb_writer.add_scalar(f"eval/{s}", stats[s], self.t_step)
+                self.tb_writer.add_scalar(f"stats/{s}", stats[s], self.t_step)
          
         return True

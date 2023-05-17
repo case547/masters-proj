@@ -72,8 +72,8 @@ def run(net_name):
         arrived_so_far += arrived_num
 
         # Log to TensorBoard
-        tb_writer.add_scalar("eval/arrived_so_far", arrived_so_far, step)
-        tb_writer.add_scalar("eval/tyre_pm_cumulative", tyre_pm_cumulative, step)
+        tb_writer.add_scalar("stats/arrived_so_far", arrived_so_far, step)
+        tb_writer.add_scalar("stats/tyre_pm_cumulative", tyre_pm_cumulative, step)
     
     tb_writer.close()
     traci.close()
