@@ -1,2 +1,2 @@
-net,vehicles_arrived,tyre_pm_emitted,final_wait_time
+network,arrived,tyre_pm_emitted,final_waiting_time
 2way-single-intersection,2179,68208.8911131483,2722.0
