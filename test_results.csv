@@ -1,7 +1,8 @@
 network,test_num,reward_fn,time_trained,reward,arrived,tyre_pm_emitted,final_waiting_time
 2way_single_intersection,5,tyre_pm_reward,0,-42523.275263926946,1212.0,42523.27522876627,253176.0
+2way_single_intersection,5,tyre_pm_reward,999999.0,-9490.722518205643,704.0,9490.722513432918,251611.0
 2way_single_intersection,5,tyre_pm_reward,1000000.0,-9440.860095024109,702.0,9440.860091965433,251611.0
-2way_single_intersection,5,tyre_pm_reward,0,-42523.275263926946,1212.0,42523.27522876627,253176.0
-2way_single_intersection,5,tyre_pm_reward,1000000.0,-9490.722518205643,704.0,9490.722513432918,251611.0
 2way_single_intersection,6,combined_reward,0,-295699.2752828598,1212.0,42523.27522876627,253176.0
 2way_single_intersection,6,combined_reward,1000000.0,-88325.29579643905,1931.0,87915.29575110378,410.0
+2way_single_intersection,7,combined_reward,0,-84719.27504730225,1212.0,42523.27522876627,253176.0
+2way_single_intersection,7,combined_reward,1000000.0,-51172.817029953,704.0,9237.650379619266,251611.0
