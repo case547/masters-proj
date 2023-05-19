@@ -53,7 +53,7 @@ def combined_reward(ts: TrafficSignal) -> float:
     Keyword arguments
         ts: the TrafficSignal object
     """
-    return tyre_pm_reward(ts) + delta_wait_time_reward(ts)/6
+    return tyre_pm_reward(ts) + 0.25*delta_wait_time_reward(ts)
 
 # Currently, trivial solution exploited where cars are just stopped;
 # Therefore need to add extra layer to prevent. Options are:
