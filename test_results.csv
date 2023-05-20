@@ -8,3 +8,5 @@ network,test_num,reward_fn,time_trained,reward,arrived,tyre_pm_emitted,final_wai
 2way_single_intersection,7,combined_reward,1000000.0,-51172.817029953,704.0,9237.650379619266,251611.0
 2way_single_intersection,8,combined_reward,0,-105817.27523422241,1212.0,42523.27522876627,253176.0
 2way_single_intersection,8,combined_reward,1000000.0,-72080.60458564758,702.0,9177.854583751283,251611.0
+2way_single_intersection,9,combined_reward,0,-245064.07524108887,1212.0,42523.27522876627,253176.0
+2way_single_intersection,9,combined_reward,1000000.0,-212723.57997012138,696.0,10613.980110531946,252637.0
