@@ -47,13 +47,13 @@ def delta_wait_time_reward(ts: TrafficSignal) -> float:
     return reward
 
 
-def combined_reward(ts: TrafficSignal, alpha=0.85) -> float:
+def combined_reward(ts: TrafficSignal, congestion_reward=TrafficSignal.get_pressure, alpha=1) -> float:
     """Return the reward summing tyre PM and change in total waiting time.
     
     Keyword arguments
         ts: the TrafficSignal object
     """
-    return tyre_pm_reward(ts) + alpha*delta_wait_time_reward(ts)
+    return tyre_pm_reward(ts) + alpha*congestion_reward(ts)
 
 # Currently, trivial solution exploited where cars are just stopped;
 # Therefore need to add extra layer to prevent. Options are:
