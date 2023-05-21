@@ -48,8 +48,6 @@ class SimListener(traci.StepListener):
 
 
     def step(self, t) -> bool:
-        self.t_step += 1
-
         # In this time step
         stats = defaultdict(float)
 
@@ -81,5 +79,6 @@ class SimListener(traci.StepListener):
             tb_stats.remove("tyre_pm")
             for s in tb_stats:
                 self.tb_writer.add_scalar(f"stats/{s}", stats[s], self.t_step)
-         
+        
+        self.t_step += 1
         return True
