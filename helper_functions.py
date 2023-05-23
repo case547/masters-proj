@@ -1,13 +1,16 @@
 from typing import Any, Callable, Dict, Optional, Type, Union
 
 import gymnasium as gym
+from pettingzoo.utils import wrappers
+from pettingzoo.utils.conversions import parallel_wrapper_fn
+
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.utils import compat_gym_seed
 from stable_baselines3.common.vec_env import DummyVecEnv, VecEnv
 from stable_baselines3.common.vec_env.patch_gym import _patch_env
 from sumo_rl import SumoEnvironment, TrafficSignal
 
-from wrappers import AccumRewardsWrapper
+from envs import CountAllRewardsEnv, CountAllRewardsEnvPZ
 
 
 def get_total_waiting_time(ts: TrafficSignal) -> float:
@@ -57,6 +60,15 @@ def linear_schedule(initial_value: float) -> Callable[[float], float]:
     return func
 
 
+def pz_env(**kwargs):
+    env = CountAllRewardsEnvPZ(**kwargs)
+    env = wrappers.AssertOutOfBoundsWrapper(env)
+    env = wrappers.OrderEnforcingWrapper(env)
+    return env
+
+make_parallel_env = parallel_wrapper_fn(pz_env)
+
+
 def sumo_vec_env(
         num_envs=1,
         seed: Optional[int] = None,
@@ -66,8 +78,7 @@ def sumo_vec_env(
     
     def make_env(rank: int) -> Callable[[], gym.Env]:
         def _init() -> gym.Env:
-            env = SumoEnvironment(**env_kwargs)
-            env = AccumRewardsWrapper(env)
+            env = CountAllRewardsEnv(**env_kwargs)
             env = Monitor(env)
             env = _patch_env(env)
 
