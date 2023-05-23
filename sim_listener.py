@@ -40,9 +40,9 @@ class SimListener(traci.StepListener):
         self.t_step = 0.
 
         # Get traffic signal objects
-        if isinstance(self.env, aec_to_parallel_wrapper):
+        if isinstance(self.env.unwrapped.par_env, aec_to_parallel_wrapper):
             # Results same for any/all markov vector envs, because actions are deterministic(?)
-            self.ts_dict = self.env.unwrapped.vec_envs[-1].par_env.unwrapped.env.traffic_signals
+            self.ts_dict = self.env.unwrapped.par_env.unwrapped.env.traffic_signals
         else:
             self.ts_dict = self.env.get_attr("traffic_signals")[0]
 
