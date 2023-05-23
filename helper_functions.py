@@ -1,6 +1,13 @@
-from typing import Callable
+from typing import Any, Callable, Dict, Optional, Type, Union
 
-from sumo_rl import TrafficSignal
+import gymnasium as gym
+from stable_baselines3.common.monitor import Monitor
+from stable_baselines3.common.utils import compat_gym_seed
+from stable_baselines3.common.vec_env import DummyVecEnv, VecEnv
+from stable_baselines3.common.vec_env.patch_gym import _patch_env
+from sumo_rl import SumoEnvironment, TrafficSignal
+
+from wrappers import AccumRewardsWrapper
 
 
 def get_total_waiting_time(ts: TrafficSignal) -> float:
@@ -48,3 +55,28 @@ def linear_schedule(initial_value: float) -> Callable[[float], float]:
         return progress_remaining * initial_value
 
     return func
+
+
+def sumo_vec_env(
+        num_envs=1,
+        seed: Optional[int] = None,
+        start_index: int = 0,
+        env_kwargs: Optional[Dict[str, Any]] = None,
+) -> VecEnv:
+    
+    def make_env(rank: int) -> Callable[[], gym.Env]:
+        def _init() -> gym.Env:
+            env = SumoEnvironment(**env_kwargs)
+            env = AccumRewardsWrapper(env)
+            env = Monitor(env)
+            env = _patch_env(env)
+
+            if seed is not None:
+                compat_gym_seed(env, seed=seed + rank)
+                env.action_space.seed(seed + rank)
+
+            return env
+        
+        return _init
+    
+    return DummyVecEnv([make_env(i + start_index) for i in range(num_envs)])
