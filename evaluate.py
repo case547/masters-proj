@@ -94,7 +94,7 @@ def evaluate(
 
     # Set up CSV
     if csv_path:
-        with open(csv_path, "w", encoding="ansi", newline="") as f:
+        with open(csv_path, "a", encoding="ansi", newline="") as f:
             csv_writer = csv.writer(f)
             csv_writer.writerow(["sim_time", "arrived_num", "avg_speed",
                                  "pressure", "queued", "tyre_pm", "waiting_time"])
