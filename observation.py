@@ -1,3 +1,4 @@
+from gymnasium import spaces
 import numpy as np
 from sumo_rl.environment.observations import DefaultObservationFunction
 from sumo_rl.environment.traffic_signal import TrafficSignal
@@ -52,3 +53,10 @@ class Grid4x4ObservationFunction(DefaultObservationFunction):
                 observation += neighbour._observation_fn_default()
 
         return np.array(observation, dtype=np.float32)
+    
+    def observation_space(self) -> spaces.Box:
+        """Return the observation space."""
+        return spaces.Box(
+            low=np.zeros(self.ts.num_green_phases + 1 + 2 * len(self.ts.lanes), dtype=np.float32),
+            high=np.ones(self.ts.num_green_phases + 1 + 2 * len(self.ts.lanes)*5, dtype=np.float32),
+        )
