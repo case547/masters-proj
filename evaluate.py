@@ -6,15 +6,15 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import numpy as np
 import traci
 from stable_baselines3.common import type_aliases
+from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv, VecEnv, VecMonitor, is_vecenv_wrapped
-from sumo_rl import SumoEnvironment
 
 from sim_listener import SimListener
 
 
 def evaluate(
     model: "type_aliases.PolicyPredictor",
-    env: SumoEnvironment,
+    env: Union[DummyVecEnv, Monitor, VecMonitor],
     csv_path: str = None,
     tb_log_dir: str = None,
     n_eval_episodes: int = 10,
@@ -62,8 +62,6 @@ def evaluate(
         (in number of steps).
     """
     is_monitor_wrapped = False
-    # Avoid circular import
-    from stable_baselines3.common.monitor import Monitor
 
     if not isinstance(env, VecEnv):
         env = DummyVecEnv([lambda: env])  # type: ignore[list-item, return-value]
