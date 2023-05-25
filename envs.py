@@ -16,7 +16,7 @@ class CountAllRewardsEnv(SumoEnvironment):
     """
 
     def __init__(self, **kwargs):
-        # Call the parent constructor, so we can access self.env later
+        # Call the parent constructor
         super().__init__(**kwargs)
     
     def step(self, action: Union[dict, int]):
@@ -93,8 +93,8 @@ class CountAllRewardsEnv(SumoEnvironment):
 
 
 class CountAllRewardsEnvPZ(SumoEnvironmentPZ):
+    """A wrapper for `CountAllRewardsEnv` that implements the AECEnv interface from PettingZoo."""
     def __init__(self, **kwargs):
-        """Initialize the environment."""
         EzPickle.__init__(self, **kwargs)
         self._kwargs = kwargs
 
