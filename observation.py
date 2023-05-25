@@ -32,9 +32,6 @@ class Grid4x4ObservationFunction(DefaultObservationFunction):
         """Initialise observation function."""
         self.ts = ts
 
-        if hasattr(self.ts.env, "traffic_signals"):
-            self.neighbours = [self.ts.env.traffic_signals[n_id] for n_id in grid4x4_neighbours[self.ts.id]]
-
     def default_observation(self) -> np.ndarray:
         """Return the default observation."""
         return super().__call__()        
@@ -44,11 +41,14 @@ class Grid4x4ObservationFunction(DefaultObservationFunction):
 
         if hasattr(self, "neighbours"):
             for neighbour in self.neighbours:
-                phase_id = [1 if neighbour.green_phase == i else 0 for i in range(neighbour.num_green_phases)]  # one-hot encoding
-                min_green = [0 if neighbour.time_since_last_phase_change < neighbour.min_green + neighbour.yellow_time else 1]
-                density = neighbour.get_lanes_density()
-                queue = neighbour.get_lanes_queue()
+                observation += neighbour._observation_fn_default()
 
-                observation += phase_id + min_green + density + queue
+            return np.array(observation, dtype=np.float32)
+            
+        if hasattr(self.ts.env, "traffic_signals"):
+            self.neighbours = [self.ts.env.traffic_signals[n_id] for n_id in grid4x4_neighbours[self.ts.id]]
+
+            for neighbour in self.neighbours:
+                observation += neighbour._observation_fn_default()
 
         return np.array(observation, dtype=np.float32)
