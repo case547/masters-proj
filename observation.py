@@ -31,18 +31,16 @@ class Grid4x4ObservationFunction(DefaultObservationFunction):
 
     def __init__(self, ts: TrafficSignal):
         """Initialise observation function."""
-        self.ts = ts
-
-    def default_observation(self) -> np.ndarray:
-        """Return the default observation."""
-        return super().__call__()        
+        self.ts = ts  
+        self.num_neighbours = len(grid4x4_neighbours[self.ts.id])
 
     def __call__(self) -> np.ndarray:
-        observation = list(self.default_observation())
+        observation = list(self._observation_fn_default())
 
+        neighbour: TrafficSignal
         if hasattr(self, "neighbours"):
             for neighbour in self.neighbours:
-                observation += neighbour._observation_fn_default()
+                observation += list(neighbour._observation_fn_default())
 
             return np.array(observation, dtype=np.float32)
             
@@ -50,13 +48,17 @@ class Grid4x4ObservationFunction(DefaultObservationFunction):
             self.neighbours = [self.ts.env.traffic_signals[n_id] for n_id in grid4x4_neighbours[self.ts.id]]
 
             for neighbour in self.neighbours:
-                observation += neighbour._observation_fn_default()
+                observation += list(neighbour._observation_fn_default())
+
+        # Ensure observation is correct length
+        if len(observation) == self.ts.num_green_phases + 1 + 2 * len(self.ts.lanes):
+            observation += [0] * self.num_neighbours
 
         return np.array(observation, dtype=np.float32)
     
     def observation_space(self) -> spaces.Box:
         """Return the observation space."""
         return spaces.Box(
-            low=np.zeros(self.ts.num_green_phases + 1 + 2 * len(self.ts.lanes), dtype=np.float32),
-            high=np.ones(self.ts.num_green_phases + 1 + 2 * len(self.ts.lanes), dtype=np.float32),
+            low=np.zeros((self.ts.num_green_phases + 1 + 2 * len(self.ts.lanes))*self.num_neighbours, dtype=np.float32),
+            high=np.ones((self.ts.num_green_phases + 1 + 2 * len(self.ts.lanes))*self.num_neighbours, dtype=np.float32),
         )
