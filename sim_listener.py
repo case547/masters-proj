@@ -3,9 +3,8 @@ from collections import defaultdict
 from typing import Union
 
 import traci
+from stable_baselines3.common.vec_env import DummyVecEnv, VecMonitor
 from torch.utils.tensorboard import SummaryWriter
-from stable_baselines3.common.monitor import Monitor
-from stable_baselines3.common.vec_env import VecEnv, VecMonitor
 
 # # Need to import python modules from the $SUMO_HOME/tools directory
 # if 'SUMO_HOME' in os.environ:
@@ -20,7 +19,7 @@ from helper_functions import get_total_waiting_time, get_tyre_pm
 
 class SimListener(traci.StepListener):
     """Custom step listener for recording to Tensorboard and CSV."""
-    def __init__(self, env: Union[Monitor, VecMonitor], csv_path: str = None, tb_log_dir: str = None) -> None:
+    def __init__(self, env: Union[DummyVecEnv, VecMonitor], csv_path: str = None, tb_log_dir: str = None) -> None:
         self.env = env
         self.csv_path = csv_path
 
@@ -40,7 +39,7 @@ class SimListener(traci.StepListener):
         self.t_step = 0.
 
         # Get traffic signal objects
-        if isinstance(self.env.unwrapped.vec_envs[0].par_env.unwrapped, CountAllRewardsEnvPZ):
+        if isinstance(env, VecMonitor):
             self.ts_dict = self.env.unwrapped.vec_envs[0].par_env.unwrapped.env.traffic_signals
         else:
             self.ts_dict = self.env.get_attr("traffic_signals")[0]

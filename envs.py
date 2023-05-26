@@ -2,9 +2,8 @@ from collections import Counter
 from typing import Union
 
 import gymnasium
-from gymnasium.utils import EzPickle, seeding
-from pettingzoo.utils import agent_selector, wrappers
-from stable_baselines3.common.vec_env.base_vec_env import VecEnv, VecEnvStepReturn, VecEnvWrapper
+from gymnasium.utils import EzPickle
+from pettingzoo.utils import agent_selector
 from sumo_rl import SumoEnvironment
 from sumo_rl.environment.env import SumoEnvironmentPZ
 
@@ -46,7 +45,7 @@ class CountAllRewardsEnv(SumoEnvironment):
         dones = self._compute_dones()
         terminated = False  # there are no 'terminal' states in this environment
         truncated = dones["__all__"]  # episode ends when sim_step >= max_steps
-        info = self.compute_info()
+        info = self._compute_info()
 
         if self.single_agent:
             return observations[self.ts_ids[0]], rewards[self.ts_ids[0]], terminated, truncated, info
