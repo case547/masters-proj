@@ -58,5 +58,5 @@ class Grid4x4ObservationFunction(DefaultObservationFunction):
         """Return the observation space."""
         return spaces.Box(
             low=np.zeros(self.ts.num_green_phases + 1 + 2 * len(self.ts.lanes), dtype=np.float32),
-            high=np.ones(self.ts.num_green_phases + 1 + 2 * len(self.ts.lanes)*5, dtype=np.float32),
+            high=np.ones(self.ts.num_green_phases + 1 + 2 * len(self.ts.lanes), dtype=np.float32),
         )
