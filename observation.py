@@ -33,7 +33,7 @@ class Grid4x4ObservationFunction(DefaultObservationFunction):
 
     def __init__(self, ts: TrafficSignal):
         """Initialise observation function."""
-        self.ts = ts
+        super().__init__(ts)
         self.num_neighbours = len(grid4x4_neighbours[self.ts.id])
 
     def __call__(self) -> np.ndarray:

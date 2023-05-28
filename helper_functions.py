@@ -4,10 +4,6 @@ import gymnasium as gym
 from pettingzoo.utils import wrappers
 from pettingzoo.utils.conversions import parallel_wrapper_fn
 
-from stable_baselines3.common.monitor import Monitor
-from stable_baselines3.common.utils import compat_gym_seed
-from stable_baselines3.common.vec_env import DummyVecEnv, VecEnv
-from stable_baselines3.common.vec_env.patch_gym import _patch_env
 from sumo_rl import TrafficSignal
 
 from envs import CountAllRewardsEnv, CountAllRewardsEnvPZ
@@ -75,8 +71,14 @@ def sumo_vec_env(
         seed: Optional[int] = None,
         start_index: int = 0,
         env_kwargs: Optional[Dict[str, Any]] = None,
-) -> VecEnv:
+):
     """Create a wrapped and monitored `CountAllRewardsEnv` (single-agent) using `DummyVecEnv`."""
+    
+    from stable_baselines3.common.monitor import Monitor
+    from stable_baselines3.common.utils import compat_gym_seed
+    from stable_baselines3.common.vec_env import DummyVecEnv, VecEnv
+    from stable_baselines3.common.vec_env.patch_gym import _patch_env
+    
     def make_env(rank: int) -> Callable[[], gym.Env]:
         def _init() -> gym.Env:
             env = CountAllRewardsEnv(**env_kwargs)
