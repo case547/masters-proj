@@ -1,0 +1,64 @@
+Failure # 1 (occurred at 2023-05-28_11-40-57)
+[36mray::PPO.train()[39m (pid=7084, ip=127.0.0.1, repr=PPO)
+  File "python\ray\_raylet.pyx", line 877, in ray._raylet.execute_task
+  File "python\ray\_raylet.pyx", line 881, in ray._raylet.execute_task
+  File "python\ray\_raylet.pyx", line 821, in ray._raylet.execute_task.function_executor
+  File "c:\Users\admin\anaconda3\envs\marl\lib\site-packages\ray\_private\function_manager.py", line 670, in actor_method_executor
+    return method(__ray_actor, *args, **kwargs)
+  File "c:\Users\admin\anaconda3\envs\marl\lib\site-packages\ray\util\tracing\tracing_helper.py", line 460, in _resume_span
+    return method(self, *_args, **_kwargs)
+  File "c:\Users\admin\anaconda3\envs\marl\lib\site-packages\ray\tune\trainable\trainable.py", line 384, in train
+    raise skipped from exception_cause(skipped)
+  File "c:\Users\admin\anaconda3\envs\marl\lib\site-packages\ray\tune\trainable\trainable.py", line 381, in train
+    result = self.step()
+  File "c:\Users\admin\anaconda3\envs\marl\lib\site-packages\ray\util\tracing\tracing_helper.py", line 460, in _resume_span
+    return method(self, *_args, **_kwargs)
+  File "c:\Users\admin\anaconda3\envs\marl\lib\site-packages\ray\rllib\algorithms\algorithm.py", line 792, in step
+    results, train_iter_ctx = self._run_one_training_iteration()
+  File "c:\Users\admin\anaconda3\envs\marl\lib\site-packages\ray\util\tracing\tracing_helper.py", line 460, in _resume_span
+    return method(self, *_args, **_kwargs)
+  File "c:\Users\admin\anaconda3\envs\marl\lib\site-packages\ray\rllib\algorithms\algorithm.py", line 2811, in _run_one_training_iteration
+    results = self.training_step()
+  File "c:\Users\admin\anaconda3\envs\marl\lib\site-packages\ray\util\tracing\tracing_helper.py", line 460, in _resume_span
+    return method(self, *_args, **_kwargs)
+  File "c:\Users\admin\anaconda3\envs\marl\lib\site-packages\ray\rllib\algorithms\ppo\ppo.py", line 403, in training_step
+    train_batch = synchronous_parallel_sample(
+  File "c:\Users\admin\anaconda3\envs\marl\lib\site-packages\ray\rllib\execution\rollout_ops.py", line 85, in synchronous_parallel_sample
+    sample_batches = worker_set.foreach_worker(
+  File "c:\Users\admin\anaconda3\envs\marl\lib\site-packages\ray\rllib\evaluation\worker_set.py", line 722, in foreach_worker
+    handle_remote_call_result_errors(remote_results, self._ignore_worker_failures)
+  File "c:\Users\admin\anaconda3\envs\marl\lib\site-packages\ray\rllib\evaluation\worker_set.py", line 75, in handle_remote_call_result_errors
+    raise r.get()
+ray.exceptions.RayTaskError(ValueError): [36mray::RolloutWorker.apply()[39m (pid=13012, ip=127.0.0.1, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x000002A28850F550>)
+  File "python\ray\_raylet.pyx", line 877, in ray._raylet.execute_task
+  File "python\ray\_raylet.pyx", line 881, in ray._raylet.execute_task
+  File "python\ray\_raylet.pyx", line 821, in ray._raylet.execute_task.function_executor
+  File "c:\Users\admin\anaconda3\envs\marl\lib\site-packages\ray\_private\function_manager.py", line 670, in actor_method_executor
+    return method(__ray_actor, *args, **kwargs)
+  File "c:\Users\admin\anaconda3\envs\marl\lib\site-packages\ray\util\tracing\tracing_helper.py", line 460, in _resume_span
+    return method(self, *_args, **_kwargs)
+  File "c:\Users\admin\anaconda3\envs\marl\lib\site-packages\ray\rllib\utils\actor_manager.py", line 185, in apply
+    raise e
+  File "c:\Users\admin\anaconda3\envs\marl\lib\site-packages\ray\rllib\utils\actor_manager.py", line 176, in apply
+    return func(self, *args, **kwargs)
+  File "c:\Users\admin\anaconda3\envs\marl\lib\site-packages\ray\rllib\execution\rollout_ops.py", line 86, in <lambda>
+    lambda w: w.sample(), local_worker=False, healthy_only=True
+  File "c:\Users\admin\anaconda3\envs\marl\lib\site-packages\ray\util\tracing\tracing_helper.py", line 460, in _resume_span
+    return method(self, *_args, **_kwargs)
+  File "c:\Users\admin\anaconda3\envs\marl\lib\site-packages\ray\rllib\evaluation\rollout_worker.py", line 915, in sample
+    batches = [self.input_reader.next()]
+  File "c:\Users\admin\anaconda3\envs\marl\lib\site-packages\ray\rllib\evaluation\sampler.py", line 92, in next
+    batches = [self.get_data()]
+  File "c:\Users\admin\anaconda3\envs\marl\lib\site-packages\ray\rllib\evaluation\sampler.py", line 277, in get_data
+    item = next(self._env_runner)
+  File "c:\Users\admin\anaconda3\envs\marl\lib\site-packages\ray\rllib\evaluation\env_runner_v2.py", line 323, in run
+    outputs = self.step()
+  File "c:\Users\admin\anaconda3\envs\marl\lib\site-packages\ray\rllib\evaluation\env_runner_v2.py", line 342, in step
+    ) = self._base_env.poll()
+  File "c:\Users\admin\anaconda3\envs\marl\lib\site-packages\ray\rllib\env\multi_agent_env.py", line 633, in poll
+    ) = env_state.poll()
+  File "c:\Users\admin\anaconda3\envs\marl\lib\site-packages\ray\rllib\env\multi_agent_env.py", line 828, in poll
+    self.reset()
+  File "c:\Users\admin\anaconda3\envs\marl\lib\site-packages\ray\rllib\env\multi_agent_env.py", line 914, in reset
+    self.last_obs, self.last_infos = obs_and_infos
+ValueError: too many values to unpack (expected 2)
