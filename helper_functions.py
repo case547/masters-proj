@@ -57,7 +57,7 @@ def linear_schedule(initial_value: float) -> Callable[[float], float]:
 
 
 def pz_env(**kwargs):
-    """Instantiate a PettinZoo environment using `CountAllRewardsEnvPZ`."""
+    """Instantiate a PettingZoo environment using `CountAllRewardsEnvPZ`."""
     env = CountAllRewardsEnvPZ(**kwargs)
     env = wrappers.AssertOutOfBoundsWrapper(env)
     env = wrappers.OrderEnforcingWrapper(env)
