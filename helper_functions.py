@@ -72,7 +72,7 @@ def sumo_vec_env(
         start_index: int = 0,
         env_kwargs: Optional[Dict[str, Any]] = None,
 ):
-    """Create a wrapped and monitored `CountAllRewardsEnv` (single-agent) using `DummyVecEnv`."""
+    """Create a wrapped and monitored (single-agent) `CountAllRewardsEnv` using Stable_Baselines3's `DummyVecEnv`."""
     
     from stable_baselines3.common.monitor import Monitor
     from stable_baselines3.common.utils import compat_gym_seed
