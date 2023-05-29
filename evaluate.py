@@ -9,14 +9,14 @@ from stable_baselines3.common import type_aliases
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv, VecEnv, VecMonitor, is_vecenv_wrapped
 
-from sim_listener import SimListener
+from listeners import SB3Listener
 
 
 def evaluate(
     model: "type_aliases.PolicyPredictor",
     env: Union[DummyVecEnv, Monitor, VecMonitor],
-    csv_path: str = None,
-    tb_log_dir: str = None,
+    csv_path: Optional[str] = None,
+    tb_log_dir: Optional[str] = None,
     n_eval_episodes: int = 10,
     deterministic: bool = True,
     render: bool = False,
@@ -97,7 +97,7 @@ def evaluate(
             csv_writer.writerow(["sim_time", "arrived_num", "avg_speed",
                                  "pressure", "queued", "tyre_pm", "waiting_time"])
     
-    listener = SimListener(env, csv_path, tb_log_dir)
+    listener = SB3Listener(env, csv_path, tb_log_dir)
     traci.addStepListener(listener)
 
     while (episode_counts < episode_count_targets).any():

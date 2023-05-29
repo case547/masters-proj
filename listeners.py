@@ -1,9 +1,12 @@
-import csv
+from abc import abstractmethod
 from collections import defaultdict
-from typing import Union
+import csv
+from typing import Dict, Optional, Union
 
+from pettingzoo.utils.wrappers.order_enforcing import OrderEnforcingWrapper
+from sumo_rl import TrafficSignal
+from supersuit.generic_wrappers.utils.shared_wrapper_util import shared_wrapper_aec
 import traci
-from stable_baselines3.common.vec_env import DummyVecEnv, VecMonitor
 from torch.utils.tensorboard import SummaryWriter
 
 # # Need to import python modules from the $SUMO_HOME/tools directory
@@ -19,7 +22,7 @@ from helper_functions import get_total_waiting_time, get_tyre_pm
 
 class SimListener(traci.StepListener):
     """Custom step listener for recording to Tensorboard and CSV."""
-    def __init__(self, env: Union[DummyVecEnv, VecMonitor], csv_path: str = None, tb_log_dir: str = None) -> None:
+    def __init__(self, env, csv_path: Optional[str] = None, tb_log_dir: Optional[str] = None) -> None:
         self.env = env
         self.csv_path = csv_path
 
@@ -33,17 +36,17 @@ class SimListener(traci.StepListener):
             self.controlled_lanes += list(dict.fromkeys(traci.trafficlight.getControlledLanes(tl)))
 
         # Initialise cumulative counters
-        self.tyre_pm_cumulative = 0.
-        self.arrived_so_far = 0.
+        self.tyre_pm_cumulative = 0
+        self.arrived_so_far = 0
 
-        self.t_step = 0.
+        self.t_step = 0
 
-        # Get traffic signal objects
-        if isinstance(env, VecMonitor):
-            self.ts_dict = self.env.unwrapped.vec_envs[0].par_env.unwrapped.env.traffic_signals
-        else:
-            self.ts_dict = self.env.get_attr("traffic_signals")[0]
+        self.ts_dict = self.get_traffic_signals()
 
+    def get_traffic_signals(self) -> Dict[str, TrafficSignal]:
+        """Get traffic signal objects"""
+        ts_dict = self.env.unwrapped.env.traffic_signals
+        return ts_dict
 
     def step(self, t) -> bool:
         # In this time step
@@ -62,7 +65,7 @@ class SimListener(traci.StepListener):
         if self.csv_path:
             with open(self.csv_path, "a", newline="") as f:
                 csv_writer = csv.writer(f)
-                csv_writer.writerow([self.t_step] + list(stats.values()))
+                csv_writer.writerow([traci.simulation.getTime()] + list(stats.values()))
 
         # Update counters
         self.tyre_pm_cumulative += stats["tyre_pm"]
@@ -80,3 +83,20 @@ class SimListener(traci.StepListener):
         
         self.t_step += 1
         return True
+
+
+class SB3Listener(SimListener):
+    """Implementation of `SimListener` for Stable Baselines3."""
+
+    def __init__(self, env, csv_path: Optional[str] = None, tb_log_dir: Optional[str] = None) -> None:
+        from stable_baselines3.common.vec_env import DummyVecEnv, VecMonitor
+        super().__init__(env, csv_path, tb_log_dir)
+
+    def get_traffic_signals(self) -> Dict[str, TrafficSignal]:
+        """Get traffic signal objects"""
+        if isinstance(self.env, VecMonitor):
+            ts_dict = self.env.unwrapped.vec_envs[0].par_env.unwrapped.env.traffic_signals
+        else:
+            ts_dict = self.env.get_attr("traffic_signals")[0]
+
+        return ts_dict
