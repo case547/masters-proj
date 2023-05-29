@@ -65,7 +65,7 @@ class SimListener(traci.StepListener):
         if self.csv_path:
             with open(self.csv_path, "a", newline="") as f:
                 csv_writer = csv.writer(f)
-                csv_writer.writerow([traci.simulation.getTime()] + list(stats.values()))
+                csv_writer.writerow([self.t_step] + list(stats.values()))
 
         # Update counters
         self.tyre_pm_cumulative += stats["tyre_pm"]
