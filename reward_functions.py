@@ -54,14 +54,3 @@ def combined_reward(ts: TrafficSignal, congestion_reward=delta_wait_time_reward,
         ts: the TrafficSignal object
     """
     return tyre_pm_reward(ts) + alpha*congestion_reward(ts)
-
-# Currently, trivial solution exploited where cars are just stopped;
-# Therefore need to add extra layer to prevent. Options are:
-#   Intersection pressure: num veh leaving minus num veh approaching
-#   Diff in waiting time (change in cumulative delay)
-#   Normalised average speed
-#   Num vehicles queued
-
-# Measure congestion by measuring longest queue - num of vehicles
-# waiting time and queue length should be linear anyway
-# waiting time maybe more accurate because queue length would have a max

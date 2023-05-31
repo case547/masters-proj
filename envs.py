@@ -1,7 +1,6 @@
 from collections import Counter
 from typing import Union
 
-import gymnasium
 from gymnasium.utils import EzPickle
 from pettingzoo.utils import agent_selector
 from sumo_rl import SumoEnvironment

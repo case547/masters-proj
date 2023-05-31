@@ -16,7 +16,6 @@ from torch.utils.tensorboard import SummaryWriter
 # else:
 #     sys.exit("please declare environment variable 'SUMO_HOME'")
 
-from envs import CountAllRewardsEnvPZ
 from helper_functions import get_total_waiting_time, get_tyre_pm
 
 
@@ -85,16 +84,20 @@ class SimListener(traci.StepListener):
         return True
 
 
+
+
 class SB3Listener(SimListener):
     """Implementation of `SimListener` for Stable Baselines3."""
 
     def __init__(self, env, csv_path: Optional[str] = None, tb_log_dir: Optional[str] = None) -> None:
-        from stable_baselines3.common.vec_env import DummyVecEnv, VecMonitor
         super().__init__(env, csv_path, tb_log_dir)
 
     def get_traffic_signals(self) -> Dict[str, TrafficSignal]:
         """Get traffic signal objects"""
+        from stable_baselines3.common.vec_env import VecMonitor
+        
         if isinstance(self.env, VecMonitor):
+            # ts_dict = self.env.unwrapped.par_env.unwrapped.env.traffic_signals
             ts_dict = self.env.unwrapped.vec_envs[0].par_env.unwrapped.env.traffic_signals
         else:
             ts_dict = self.env.get_attr("traffic_signals")[0]
