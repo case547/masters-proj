@@ -1,0 +1,21 @@
+<routes>
+    <flow id="flow_1" from="-h11" to="-h13" begin="0" end="3600" probability="0.05" departSpeed="max" departPos="base" departLane="best"/>
+    <flow id="flow_2" from="-h21" to="-h23" begin="0" end="3600" probability="0.05" departSpeed="max" departPos="base" departLane="best"/>
+    <flow id="flow_3" from="-v11" to="-v13" begin="0" end="3600" probability="0.05" departSpeed="max" departPos="base" departLane="best"/>
+    <flow id="flow_4" from="-v21" to="-v23" begin="0" end="3600" probability="0.05" departSpeed="max" departPos="base" departLane="best"/>
+
+    <flow id="flow_5" from="h13" to="h11" begin="0" end="3600" probability="0.05" departSpeed="max" departPos="base" departLane="best"/>
+    <flow id="flow_6" from="h23" to="h21" begin="0" end="3600" probability="0.05" departSpeed="max" departPos="base" departLane="best"/>
+    <flow id="flow_7" from="v13" to="v11" begin="0" end="3600" probability="0.05" departSpeed="max" departPos="base" departLane="best"/>
+    <flow id="flow_8" from="v23" to="v21" begin="0" end="3600" probability="0.05" departSpeed="max" departPos="base" departLane="best"/>
+
+    <flow id="flow_9" from="-h11" to="-v23" begin="0" end="3600" probability="0.025" departSpeed="max" departPos="base" departLane="best"/>
+    <flow id="flow_10" from="-h21" to="v21" begin="0" end="3600" probability="0.025" departSpeed="max" departPos="base" departLane="best"/>
+    <flow id="flow_11" from="-v11" to="-h23" begin="0" end="3600" probability="0.025" departSpeed="max" departPos="base" departLane="best"/>
+    <flow id="flow_12" from="-v21" to="h21" begin="0" end="3600" probability="0.025" departSpeed="max" departPos="base" departLane="best"/>
+    
+    <flow id="flow_13" from="h13" to="-v13" begin="0" end="3600" probability="0.025" departSpeed="max" departPos="base" departLane="best"/>
+    <flow id="flow_14" from="h23" to="v11" begin="0" end="3600" probability="0.025" departSpeed="max" departPos="base" departLane="best"/>
+    <flow id="flow_15" from="v13" to="-h13" begin="0" end="3600" probability="0.025" departSpeed="max" departPos="base" departLane="best"/>
+    <flow id="flow_16" from="v23" to="h11" begin="0" end="3600" probability="0.025" departSpeed="max" departPos="base" departLane="best"/>
+</routes>

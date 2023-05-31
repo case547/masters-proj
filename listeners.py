@@ -97,6 +97,7 @@ class SB3Listener(SimListener):
         from stable_baselines3.common.vec_env import VecMonitor
         
         if isinstance(self.env, VecMonitor):
+            # ts_dict = self.env.unwrapped.par_env.unwrapped.env.traffic_signals
             ts_dict = self.env.unwrapped.vec_envs[0].par_env.unwrapped.env.traffic_signals
         else:
             ts_dict = self.env.get_attr("traffic_signals")[0]
