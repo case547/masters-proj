@@ -94,3 +94,23 @@ class CountAllRewardsEnvPZ(SumoEnvironmentPZ):
         self.terminations = {a: False for a in self.agents}
         self.truncations = {a: False for a in self.agents}
         self.infos = {a: {} for a in self.agents}
+
+
+class MultiAgentSumoEnv(CountAllRewardsEnv):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def _compute_info(self):
+        info = {"__common__": {"step": self.sim_step}}
+        per_agent_info = self._get_per_agent_info()
+
+        for agent in self.ts_ids:
+            agent_info = {}
+
+            for k, v in per_agent_info.items():
+                if k.startswith(agent):
+                    agent_info[k.split("_")[-1]] = v
+
+            info.update({agent: agent_info})
+
+        return info
