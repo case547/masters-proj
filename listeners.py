@@ -1,13 +1,11 @@
-from abc import abstractmethod
 from collections import defaultdict
 import csv
-from typing import Dict, Optional, Union
+from typing import Dict, Optional
 
-from pettingzoo.utils.wrappers.order_enforcing import OrderEnforcingWrapper
+import numpy as np
 from sumo_rl import TrafficSignal
-from supersuit.generic_wrappers.utils.shared_wrapper_util import shared_wrapper_aec
-import traci
 from torch.utils.tensorboard import SummaryWriter
+import traci
 
 # # Need to import python modules from the $SUMO_HOME/tools directory
 # if 'SUMO_HOME' in os.environ:
@@ -24,23 +22,17 @@ class SimListener(traci.StepListener):
     def __init__(self, env, csv_path: Optional[str] = None, tb_log_dir: Optional[str] = None) -> None:
         self.env = env
         self.csv_path = csv_path
+        self.ts_dict = self.get_traffic_signals()
 
         if tb_log_dir:
             self.tb_writer = SummaryWriter(tb_log_dir)  # prep TensorBoard
 
-        # Get traffic lights and lanes they control
-        tl_ids = list(traci.trafficlight.getIDList())
-        self.controlled_lanes = []
-        for tl in tl_ids:
-            self.controlled_lanes += list(dict.fromkeys(traci.trafficlight.getControlledLanes(tl)))
-
         # Initialise cumulative counters
-        self.tyre_pm_cumulative = 0
+        self.tyre_pm_system = 0
+        self.tyre_pm_agents = 0
         self.arrived_so_far = 0
 
         self.t_step = 0
-
-        self.ts_dict = self.get_traffic_signals()
 
     def get_traffic_signals(self) -> Dict[str, TrafficSignal]:
         """Get traffic signal objects"""
@@ -48,41 +40,61 @@ class SimListener(traci.StepListener):
         return ts_dict
 
     def step(self, t) -> bool:
-        # In this time step
-        stats = defaultdict(float)
+        # Get system stats
+        vehicles = traci.vehicle.getIDList()
+        speeds = [traci.vehicle.getSpeed(veh) for veh in vehicles]
+        waiting_times = [traci.vehicle.getWaitingTime(veh) for veh in vehicles]
 
-        # Sum stats for traffic signals
-        for ts in self.ts_dict.values():
-            stats["arrived_num"] += traci.simulation.getArrivedNumber()
-            stats["avg_speed"] += ts.get_average_speed()
-            stats["pressure"] += ts.get_pressure()
-            stats["queued"] += ts.get_total_queued()
-            stats["tyre_pm"] += get_tyre_pm(ts)
-            stats["waiting_time"] += get_total_waiting_time(ts)
-
+        system_tyre_pm = get_tyre_pm()
+        arrived_num = traci.simulation.getArrivedNumber()
+        self.tyre_pm_system += system_tyre_pm
+        self.arrived_so_far += arrived_num
+        
+        system_stats = {
+            "total_stopped": sum(int(speed < 0.1) for speed in speeds),
+            "total_waiting_time": sum(waiting_times),
+            "mean_waiting_time": 0.0 if len(vehicles) == 0 else np.mean(waiting_times),
+            "mean_speed": 0.0 if len(vehicles) == 0 else np.mean(speeds),
+        }
+        
+        # Get agent stats
+        agents_tyre_pm = sum(get_tyre_pm(ts) for ts in self.ts_dict.values())
+        self.tyre_pm_agents += agents_tyre_pm
+        
+        agent_stats = {
+            "total_stopped": sum(ts.get_total_queued() for ts in self.ts_dict.values()),
+            "total_waiting_time": sum(get_total_waiting_time(ts) for ts in self.ts_dict.values()),
+            "average_speed": np.mean(ts.get_average_speed() for ts in self.ts_dict.values()),
+            "total_pressure": sum(-ts.get_pressure() for ts in self.ts_dict.values())
+        }
+        
         # Log to CSV
         if self.csv_path:
             with open(self.csv_path, "a", newline="") as f:
                 csv_writer = csv.writer(f)
-                csv_writer.writerow([self.t_step] + list(stats.values()))
-
-        # Update counters
-        self.tyre_pm_cumulative += stats["tyre_pm"]
-        self.arrived_so_far += stats["arrived_num"]
+                csv_writer.writerow(
+                    [self.t_step, arrived_num, system_tyre_pm]
+                    + list(system_stats.values())
+                    + list(agent_stats.values())
+                )
 
         # Log to TensorBoard
         if hasattr(self, "tb_writer"):
-            self.tb_writer.add_scalar("stats/arrived_so_far", self.arrived_so_far, self.t_step)
-            self.tb_writer.add_scalar("stats/tyre_pm_cumulative", self.tyre_pm_cumulative, self.t_step)
-            tb_stats = list(stats.keys())
-            tb_stats.remove("arrived_num")
-            tb_stats.remove("tyre_pm")
-            for s in tb_stats:
-                self.tb_writer.add_scalar(f"stats/{s}", stats[s], self.t_step)
+            # System
+            self.tb_writer.add_scalar("world/arrived_so_far", self.arrived_so_far, self.t_step)
+            self.tb_writer.add_scalar("world/tyre_pm_cumulative", self.tyre_pm_system, self.t_step)
+
+            for stat, val in system_stats.items():
+                self.tb_writer.add_scalar(f"world/{stat}", val, self.t_step)
+
+            # Agents
+            self.tb_writer.add_scalar("agents/tyre_pm_cumulative", self.tyre_pm_agents, self.t_step)
+
+            for stat, val in agent_stats.items():
+                self.tb_writer.add_scalar(f"agents/{stat}", val, self.t_step)
         
         self.t_step += 1
         return True
-
 
 
 
