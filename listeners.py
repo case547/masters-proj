@@ -1,4 +1,3 @@
-from collections import defaultdict
 import csv
 from typing import Dict, Optional
 
@@ -19,10 +18,11 @@ from helper_functions import get_total_waiting_time, get_tyre_pm
 
 class SimListener(traci.StepListener):
     """Custom step listener for recording to Tensorboard and CSV."""
-    def __init__(self, env, csv_path: Optional[str] = None, tb_log_dir: Optional[str] = None) -> None:
+    def __init__(self, env=None, csv_path: Optional[str] = None, tb_log_dir: Optional[str] = None) -> None:
         self.env = env
         self.csv_path = csv_path
-        self.ts_dict = self.get_traffic_signals()
+        if env:
+            self.ts_dict = self.get_traffic_signals()
 
         if tb_log_dir:
             self.tb_writer = SummaryWriter(tb_log_dir)  # prep TensorBoard
@@ -31,8 +31,6 @@ class SimListener(traci.StepListener):
         self.tyre_pm_system = 0
         self.tyre_pm_agents = 0
         self.arrived_so_far = 0
-
-        self.t_step = 0
 
     def get_traffic_signals(self) -> Dict[str, TrafficSignal]:
         """Get traffic signal objects"""
@@ -58,25 +56,27 @@ class SimListener(traci.StepListener):
         }
         
         # Get agent stats
-        agents_tyre_pm = sum(get_tyre_pm(ts) for ts in self.ts_dict.values())
-        self.tyre_pm_agents += agents_tyre_pm
-        
-        agent_stats = {
-            "total_stopped": sum(ts.get_total_queued() for ts in self.ts_dict.values()),
-            "total_waiting_time": sum(get_total_waiting_time(ts) for ts in self.ts_dict.values()),
-            "average_speed": np.mean(ts.get_average_speed() for ts in self.ts_dict.values()),
-            "total_pressure": sum(-ts.get_pressure() for ts in self.ts_dict.values())
-        }
+        if hasattr(self, "ts_dict"):
+            agents_tyre_pm = sum(get_tyre_pm(ts) for ts in self.ts_dict.values())
+            self.tyre_pm_agents += agents_tyre_pm
+            
+            agent_stats = {
+                "total_stopped": sum(ts.get_total_queued() for ts in self.ts_dict.values()),
+                "total_waiting_time": sum(get_total_waiting_time(ts) for ts in self.ts_dict.values()),
+                "average_speed": np.mean(ts.get_average_speed() for ts in self.ts_dict.values()),
+                "total_pressure": sum(-ts.get_pressure() for ts in self.ts_dict.values())
+            }
         
         # Log to CSV
         if self.csv_path:
             with open(self.csv_path, "a", newline="") as f:
                 csv_writer = csv.writer(f)
-                csv_writer.writerow(
-                    [self.t_step, arrived_num, system_tyre_pm]
-                    + list(system_stats.values())
-                    + list(agent_stats.values())
-                )
+                data = [traci.simulation.getTime(), arrived_num, system_tyre_pm] + list(system_stats.values())
+
+                if hasattr(self, "ts_dict"):
+                    data += [agents_tyre_pm] + list(agent_stats.values())
+                
+                csv_writer.writerow(data)
 
         # Log to TensorBoard
         if hasattr(self, "tb_writer"):
@@ -88,10 +88,11 @@ class SimListener(traci.StepListener):
                 self.tb_writer.add_scalar(f"world/{stat}", val, self.t_step)
 
             # Agents
-            self.tb_writer.add_scalar("agents/tyre_pm_cumulative", self.tyre_pm_agents, self.t_step)
+            if hasattr(self, "ts_dict"):
+                self.tb_writer.add_scalar("agents/tyre_pm_cumulative", self.tyre_pm_agents, self.t_step)
 
-            for stat, val in agent_stats.items():
-                self.tb_writer.add_scalar(f"agents/{stat}", val, self.t_step)
+                for stat, val in agent_stats.items():
+                    self.tb_writer.add_scalar(f"agents/{stat}", val, self.t_step)
         
         self.t_step += 1
         return True
