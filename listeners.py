@@ -32,6 +32,8 @@ class SimListener(traci.StepListener):
         self.tyre_pm_agents = 0
         self.arrived_so_far = 0
 
+        self.t_step = 0
+
     def get_traffic_signals(self) -> Dict[str, TrafficSignal]:
         """Get traffic signal objects"""
         ts_dict = self.env.unwrapped.env.traffic_signals
