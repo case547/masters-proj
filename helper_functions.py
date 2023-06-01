@@ -7,8 +7,6 @@ from pettingzoo.utils.conversions import parallel_wrapper_fn
 from sumo_rl import TrafficSignal
 import traci
 
-from envs import CountAllRewardsEnv, CountAllRewardsEnvPZ
-
 
 def get_total_waiting_time(ts: Optional[TrafficSignal] = None) -> float:
     """Return the waiting time for a collection of vehicles.
@@ -22,7 +20,7 @@ def get_total_waiting_time(ts: Optional[TrafficSignal] = None) -> float:
     if ts:
         return sum(ts.sumo.lane.getWaitingTime(lane) for lane in ts.lanes)
     
-    return sum(traci.vehicle.getWaitingTime(veh) for veh in traci.vehicle.getID())
+    return sum(traci.vehicle.getWaitingTime(veh) for veh in traci.vehicle.getIDList())
 
 
 def get_tyre_pm(ts: Optional[TrafficSignal] = None) -> float:
@@ -45,7 +43,7 @@ def get_tyre_pm(ts: Optional[TrafficSignal] = None) -> float:
                 accel = ts.sumo.vehicle.getAcceleration(veh)
                 tyre_pm += abs(accel)
     else:
-        for veh in traci.vehicle.getID():
+        for veh in traci.vehicle.getIDList():
             accel = traci.vehicle.getAcceleration(veh)
             tyre_pm += abs(accel)
 
@@ -72,6 +70,8 @@ def linear_schedule(initial_value: float) -> Callable[[float], float]:
 
 def pz_env(**kwargs):
     """Instantiate a PettingZoo environment using `CountAllRewardsEnvPZ`."""
+    from envs import CountAllRewardsEnvPZ
+
     env = CountAllRewardsEnvPZ(**kwargs)
     env = wrappers.AssertOutOfBoundsWrapper(env)
     env = wrappers.OrderEnforcingWrapper(env)
@@ -86,12 +86,15 @@ def sumo_vec_env(
         start_index: int = 0,
         env_kwargs: Optional[Dict[str, Any]] = None,
 ):
-    """Create a wrapped and monitored (single-agent) `CountAllRewardsEnv` using Stable_Baselines3's `DummyVecEnv`."""
+    """Create a wrapped and monitored (single-agent) `CountAllRewardsEnv` using Stable_Baselines3's `DummyVecEnv`.
     
+    :return: Stable Baselines3 `DummyVecEnv`
+    """
     from stable_baselines3.common.monitor import Monitor
     from stable_baselines3.common.utils import compat_gym_seed
-    from stable_baselines3.common.vec_env import DummyVecEnv, VecEnv
+    from stable_baselines3.common.vec_env import DummyVecEnv
     from stable_baselines3.common.vec_env.patch_gym import _patch_env
+    from envs import CountAllRewardsEnv
     
     def make_env(rank: int) -> Callable[[], gym.Env]:
         def _init() -> gym.Env:
