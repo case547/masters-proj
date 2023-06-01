@@ -1,6 +1,7 @@
 from collections import Counter
 import csv
 import os
+import time
 from typing import Optional, Union
 
 import numpy as np
@@ -207,6 +208,7 @@ class MultiAgentSumoEnv(CountAllRewardsEnv):
         if not LIBSUMO:
             traci.switch(self.label)
         traci.close()
+        time.sleep(2)
 
         if self.disp is not None:
             self.disp.stop()
