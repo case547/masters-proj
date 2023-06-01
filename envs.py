@@ -6,6 +6,7 @@ from pettingzoo.utils import agent_selector
 from sumo_rl import SumoEnvironment
 from sumo_rl.environment.env import SumoEnvironmentPZ
 
+from helper_functions import get_tyre_pm
 
 class CountAllRewardsEnv(SumoEnvironment):
     """Environment that counts rewards every sumo_step.
@@ -104,13 +105,16 @@ class MultiAgentSumoEnv(CountAllRewardsEnv):
         info = {"__common__": {"step": self.sim_step}}
         per_agent_info = self._get_per_agent_info()
 
-        for agent in self.ts_ids:
+        for agent_id in self.ts_ids:
             agent_info = {}
 
             for k, v in per_agent_info.items():
-                if k.startswith(agent):
+                if k.startswith(agent_id):
                     agent_info[k.split("_")[-1]] = v
 
-            info.update({agent: agent_info})
+            # Add tyre PM
+            agent_info["tyre_pm"] = get_tyre_pm(self.traffic_signals[agent_id])
+
+            info.update({agent_id: agent_info})
 
         return info
