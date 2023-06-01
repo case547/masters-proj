@@ -1,12 +1,22 @@
 from collections import Counter
-from typing import Union
+import csv
+import os
+from typing import Optional, Union
+
+import numpy as np
+from torch.utils.tensorboard import SummaryWriter
 
 from gymnasium.utils import EzPickle
 from pettingzoo.utils import agent_selector
 from sumo_rl import SumoEnvironment
 from sumo_rl.environment.env import SumoEnvironmentPZ
+import traci
 
-from helper_functions import get_tyre_pm
+from helper_functions import get_total_waiting_time, get_tyre_pm
+
+
+LIBSUMO = "LIBSUMO_AS_TRACI" in os.environ
+
 
 class CountAllRewardsEnv(SumoEnvironment):
     """Environment that counts rewards every sumo_step.
@@ -98,8 +108,19 @@ class CountAllRewardsEnvPZ(SumoEnvironmentPZ):
 
 
 class MultiAgentSumoEnv(CountAllRewardsEnv):
-    def __init__(self, **kwargs):
+    def __init__(self, eval=False, csv_path: Optional[str] = None, tb_log_dir: Optional[str] = None, **kwargs):
         super().__init__(**kwargs)
+        self.eval = eval
+        self.csv_path = csv_path
+        self.tb_log_dir = tb_log_dir
+
+        if tb_log_dir:
+            self.tb_writer = SummaryWriter(tb_log_dir)  # prep TensorBoard
+
+        # Initialise cumulative counters
+        self.tyre_pm_system = 0
+        self.tyre_pm_agents = 0
+        self.arrived_so_far = 0
 
     def _compute_info(self):
         info = {"__common__": {"step": self.sim_step}}
@@ -118,3 +139,77 @@ class MultiAgentSumoEnv(CountAllRewardsEnv):
             info.update({agent_id: agent_info})
 
         return info
+
+    def _sumo_step(self):
+        self.sumo.simulationStep()
+
+        if self.eval:
+            # Get system stats
+            vehicles = self.sumo.vehicle.getIDList()
+            speeds = [self.sumo.vehicle.getSpeed(veh) for veh in vehicles]
+            waiting_times = [self.sumo.vehicle.getWaitingTime(veh) for veh in vehicles]
+
+            system_tyre_pm = get_tyre_pm()
+            arrived_num = self.sumo.simulation.getArrivedNumber()
+            self.tyre_pm_system += system_tyre_pm
+            self.arrived_so_far += arrived_num
+            
+            system_stats = {
+                "total_stopped": sum(int(speed < 0.1) for speed in speeds),
+                "total_waiting_time": sum(waiting_times),
+                "mean_waiting_time": 0.0 if len(vehicles) == 0 else np.mean(waiting_times),
+                "mean_speed": 0.0 if len(vehicles) == 0 else np.mean(speeds),
+            }
+            
+            # Get agent stats
+            agents_tyre_pm = sum(get_tyre_pm(ts) for ts in self.traffic_signals.values())
+            self.tyre_pm_agents += agents_tyre_pm
+            
+            agent_stats = {
+                # ts: TrafficSignal
+                "total_stopped": sum(ts.get_total_queued() for ts in self.traffic_signals.values()),
+                "total_waiting_time": sum(get_total_waiting_time(ts) for ts in self.traffic_signals.values()),
+                "average_speed": np.mean([ts.get_average_speed() for ts in self.traffic_signals.values()]),
+                "total_pressure": sum(-ts.get_pressure() for ts in self.traffic_signals.values())
+            }
+            
+            # Log to CSV
+            if self.csv_path:
+                with open(self.csv_path, "a", newline="") as f:
+                    csv_writer = csv.writer(f)
+                    data = ([self.sim_step, arrived_num, system_tyre_pm]
+                            + list(system_stats.values())
+                            + [agents_tyre_pm]
+                            + list(agent_stats.values()))
+                    
+                    csv_writer.writerow(data)
+
+            # Log to TensorBoard
+            if hasattr(self, "tb_writer"):
+                # System
+                self.tb_writer.add_scalar("world/arrived_so_far", self.arrived_so_far, self.sim_step)
+                self.tb_writer.add_scalar("world/tyre_pm_cumulative", self.tyre_pm_system, self.sim_step)
+
+                for stat, val in system_stats.items():
+                    self.tb_writer.add_scalar(f"world/{stat}", val, self.sim_step)
+
+                # Agents
+                self.tb_writer.add_scalar("agents/tyre_pm_cumulative", self.tyre_pm_agents, self.sim_step)
+
+                for stat, val in agent_stats.items():
+                    self.tb_writer.add_scalar(f"agents/{stat}", val, self.sim_step)
+
+    def close(self):
+        """Close the environment and stop the SUMO simulation."""
+        if self.sumo is None:
+            return
+
+        if not LIBSUMO:
+            traci.switch(self.label)
+        traci.close()
+
+        if self.disp is not None:
+            self.disp.stop()
+            self.disp = None
+
+        self.sumo = None
