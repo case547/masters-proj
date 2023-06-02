@@ -47,12 +47,10 @@ class SharedObservationFunction(DefaultObservationFunction):
         self.neighbour_dict = neighbour_dict
         self.num_neighbours = len(neighbour_dict[self.ts.id])
 
-        self.space_dim = (self.ts.num_green_phases + 1 + 2 * len(self.ts.lanes)) \
-                          * (1 + max_neighbours(self.neighbour_dict)) * 2  # x2 because frame stack
-
-        self.last_obs = np.zeros(self.space_dim / 2)
-
     def __call__(self) -> np.ndarray:
+        if not hasattr(self, "last_obs"):
+            self.last_obs = np.zeros(int(self.space_dim/2))
+
         observation = list(self.ts._observation_fn_default())
 
         neighbour: TrafficSignal
@@ -61,9 +59,9 @@ class SharedObservationFunction(DefaultObservationFunction):
                 observation += list(neighbour._observation_fn_default())
 
             observation = np.array(observation, dtype=np.float32)
-            observation = pad_to(observation, np.zeros(self.space_dim / 2).shape, 0)
-            
-            stack = np.hstack(self.last_obs, observation)
+            observation = pad_to(observation, np.zeros(int(self.space_dim/2)).shape, 0)
+
+            stack = np.hstack((self.last_obs, observation))
             self.last_obs = observation
             
             return stack
@@ -76,15 +74,17 @@ class SharedObservationFunction(DefaultObservationFunction):
                 observation += list(neighbour._observation_fn_default())
 
         observation = np.array(observation, dtype=np.float32)
-        observation = pad_to(observation, np.zeros(self.space_dim / 2).shape, 0)
+        observation = pad_to(observation, np.zeros(int(self.space_dim/2)).shape, 0)
         
-        stack = np.hstack(self.last_obs, observation)
+        stack = np.hstack((self.last_obs, observation))
         self.last_obs = observation
         
         return stack
         
     def observation_space(self) -> spaces.Box:
         """Return the observation space."""
+        self.space_dim = (self.ts.num_green_phases + 1 + 2 * len(self.ts.lanes)) \
+                          * (1 + max_neighbours(self.neighbour_dict)) * 2  # x2 because frame stack
 
         return spaces.Box(
             low=np.zeros(self.space_dim, dtype=np.float32),
