@@ -47,6 +47,11 @@ class SharedObservationFunction(DefaultObservationFunction):
         self.neighbour_dict = neighbour_dict
         self.num_neighbours = len(neighbour_dict[self.ts.id])
 
+        self.space_dim = (self.ts.num_green_phases + 1 + 2 * len(self.ts.lanes)) \
+                          * (1 + max_neighbours(self.neighbour_dict)) * 2  # x2 because frame stack
+
+        self.last_obs = np.zeros(self.space_dim / 2)
+
     def __call__(self) -> np.ndarray:
         observation = list(self.ts._observation_fn_default())
 
@@ -56,8 +61,12 @@ class SharedObservationFunction(DefaultObservationFunction):
                 observation += list(neighbour._observation_fn_default())
 
             observation = np.array(observation, dtype=np.float32)
-            # return observation
-            return pad_to(observation, np.zeros(self.space_dim).shape, 0)
+            observation = pad_to(observation, np.zeros(self.space_dim / 2).shape, 0)
+            
+            stack = np.hstack(self.last_obs, observation)
+            self.last_obs = observation
+            
+            return stack
         
         # Skipped if self.neighbours already exists to save time
         if hasattr(self.ts.env, "traffic_signals"):
@@ -67,14 +76,15 @@ class SharedObservationFunction(DefaultObservationFunction):
                 observation += list(neighbour._observation_fn_default())
 
         observation = np.array(observation, dtype=np.float32)
-        # return observation
-        return pad_to(observation, np.zeros(self.space_dim).shape, 0)
+        observation = pad_to(observation, np.zeros(self.space_dim / 2).shape, 0)
+        
+        stack = np.hstack(self.last_obs, observation)
+        self.last_obs = observation
+        
+        return stack
         
     def observation_space(self) -> spaces.Box:
         """Return the observation space."""
-        self.space_dim = (self.ts.num_green_phases + 1 + 2 * len(self.ts.lanes)) \
-                          * (1 + max_neighbours(self.neighbour_dict))
-                        #   * (1 + len(self.neighbour_dict[self.ts.id]))
 
         return spaces.Box(
             low=np.zeros(self.space_dim, dtype=np.float32),
@@ -85,6 +95,7 @@ class SharedObservationFunction(DefaultObservationFunction):
 class Grid2x2ObservationFunction(SharedObservationFunction):
     def __init__(self, ts: TrafficSignal):
         super().__init__(ts, grid2x2_neighbours)
+
 
 class Grid4x4ObservationFunction(SharedObservationFunction):
     def __init__(self, ts: TrafficSignal):
