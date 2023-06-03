@@ -39,7 +39,7 @@ def max_neighbours(neighbours: dict):
 
 
 class SharedObservationFunction(DefaultObservationFunction):
-    """Observation function for traffic signals in the grid4x4 network."""
+    """Class to share observations between neighbouring traffic signals in multi-agent networks."""
 
     def __init__(self, ts: TrafficSignal, neighbour_dict: dict):
         """Initialise observation function."""
@@ -51,38 +51,27 @@ class SharedObservationFunction(DefaultObservationFunction):
         if not hasattr(self, "last_obs"):
             self.last_obs = np.zeros(int(self.space_dim/2))
 
-        observation = list(self.ts._observation_fn_default())
+        obs = self.ts._observation_fn_default()
 
-        neighbour: TrafficSignal
+        neighbour: TrafficSignal  # type hint for VS Code
+
+        # Below: checks for self.neighbours before self.traffic_signals because if
+        # self.traffic_signals exists, then self.neighbours will have been created  
+
         if hasattr(self, "neighbours"):
             for neighbour in self.neighbours:
-                observation += list(neighbour._observation_fn_default())
+                obs = np.hstack((obs, neighbour._observation_fn_default()))
 
-            observation = np.array(observation, dtype=np.float32)
-            observation = pad_to(observation, np.zeros(int(self.space_dim/2)).shape, 0)
-
-            stack = np.hstack((self.last_obs, observation))
-            self.last_obs = observation
-            
-            return stack
+            return self.pad_and_stack(obs)
         
-        # Skipped if self.neighbours already exists to save time
         if hasattr(self.ts.env, "traffic_signals"):
             self.neighbours = [self.ts.env.traffic_signals[n_id] for n_id in self.neighbour_dict[self.ts.id]]
 
-            for neighbour in self.neighbours:
-                observation += list(neighbour._observation_fn_default())
-
-        observation = np.array(observation, dtype=np.float32)
-        observation = pad_to(observation, np.zeros(int(self.space_dim/2)).shape, 0)
-        
-        stack = np.hstack((self.last_obs, observation))
-        self.last_obs = observation
-        
-        return stack
+        return self.pad_and_stack(obs)
         
     def observation_space(self) -> spaces.Box:
         """Return the observation space."""
+        # Default observation has shape (21,) for grid2x2
         self.space_dim = (self.ts.num_green_phases + 1 + 2 * len(self.ts.lanes)) \
                           * (1 + max_neighbours(self.neighbour_dict)) * 2  # x2 because frame stack
 
@@ -90,6 +79,14 @@ class SharedObservationFunction(DefaultObservationFunction):
             low=np.zeros(self.space_dim, dtype=np.float32),
             high=np.ones(self.space_dim, dtype=np.float32),
         )
+    
+    def pad_and_stack(self, observation):
+        observation = pad_to(observation, np.zeros(int(self.space_dim/2)).shape, 0)
+
+        stack = np.hstack((self.last_obs, observation))
+        self.last_obs = observation
+        
+        return stack
     
 
 class Grid2x2ObservationFunction(SharedObservationFunction):
