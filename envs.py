@@ -208,6 +208,9 @@ class MultiAgentSumoEnv(CountAllRewardsEnv):
         if not LIBSUMO:
             traci.switch(self.label)
         traci.close()
+
+        # Help completely release SUMO port between episodes to address
+        # "Unable to create listening socket: Address already in use" error
         time.sleep(2)
 
         if self.disp is not None:
