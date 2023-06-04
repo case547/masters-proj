@@ -4,6 +4,7 @@ import os
 import sys
 from pathlib import PurePath
 
+import numpy as np
 import pandas as pd
 from sumolib import checkBinary
 import traci
@@ -21,13 +22,12 @@ def run(net_name: str, seed: int):
     csv_dir = os.path.join("no_rl", net_name)
 
     # Create CSV
-    csv_path = os.path.join(csv_dir,f"baseline_{seed}.csv")
-    with open(csv_path, "w", newline="") as f:
+    metrics_csv = os.path.join(csv_dir,f"baseline_{seed}.csv")
+    with open(metrics_csv, "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["sim_time", "arrived_num", "sys_tyre_pm", "sys_stopped",
-                         "sys_total_wait", "sys_avg_wait", "sys_avg_speed",])
+        writer.writerow(["sim_time", "arrived_num", "tyre_pm", "stopped", "total_wait", "avg_wait", "avg_speed"])
 
-    listener = SimListener(csv_path=csv_path)
+    listener = SimListener(csv_path=metrics_csv)
     traci.addStepListener(listener)
 
     end_time = traci.simulation.getEndTime()
@@ -36,6 +36,21 @@ def run(net_name: str, seed: int):
 
     traci.close()
 
+    # Collate results
+    df = pd.read_csv(metrics_csv)
+    total_arrived = sum(df["arrived_num"])
+    total_tyre_pm = sum(df["tyre_pm"])
+    mean_stopped = np.mean(df["stopped"])
+    mean_total_wait = np.mean(df["total_wait"])
+    mean_avg_wait = np.mean(df["avg_wait"])
+    mean_avg_speed = np.mean(df["avg_speed"])
+
+    collate_csv = os.path.join(csv_dir, "collated_results.csv")
+    with open(collate_csv, "a", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow([seed, total_arrived, total_tyre_pm, mean_stopped,
+                         mean_total_wait, mean_avg_wait, mean_avg_speed])
+    
 
 def parse_options():
     parser = argparse.ArgumentParser()

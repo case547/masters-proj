@@ -1,4 +1,4 @@
-sim_time,arrived_num,sys_tyre_pm,sys_stopped,sys_total_wait,sys_avg_wait,sys_avg_speed
+sim_time,arrived_num,tyre_pm,stopped,total_wait,avg_wait,avg_speed
 1.0,0,0.0,0,0.0,0.0,14.224565
 2.0,0,6.49564485605806,0,0.0,0.0,12.380374417877455
 3.0,0,5.589681260939685,0,0.0,0.0,12.299976249641128
