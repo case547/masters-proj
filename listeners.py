@@ -17,7 +17,7 @@ from helper_functions import get_total_waiting_time, get_tyre_pm
 
 
 class SimListener(traci.StepListener):
-    """Custom step listener for recording to Tensorboard and CSV."""
+    """Custom step listener for recording system and agent metrics to CSV and/or Tensorboard."""
     def __init__(self, env=None, csv_path: Optional[str] = None, tb_log_dir: Optional[str] = None) -> None:
         self.env = env
         self.csv_path = csv_path
@@ -65,7 +65,7 @@ class SimListener(traci.StepListener):
             agent_stats = {
                 "total_stopped": sum(ts.get_total_queued() for ts in self.ts_dict.values()),
                 "total_waiting_time": sum(get_total_waiting_time(ts) for ts in self.ts_dict.values()),
-                "average_speed": np.mean(ts.get_average_speed() for ts in self.ts_dict.values()),
+                "average_speed": np.mean([ts.get_average_speed() for ts in self.ts_dict.values()]),
                 "total_pressure": sum(-ts.get_pressure() for ts in self.ts_dict.values())
             }
         

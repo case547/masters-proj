@@ -1,5 +1,4 @@
 sim_time,arrived_num,sys_tyre_pm,sys_stopped,sys_total_wait,sys_avg_wait,sys_avg_speed,agents_tyre_pm,agents_stopped,agents_total_wait,agents_avg_speed,agents_total_pressure
-sim_time,arrived_num,sys_tyre_pm,sys_stopped,sys_total_wait,sys_avg_wait,sys_avg_speed,agents_tyre_pm,agents_stopped,agents_total_wait,agents_avg_speed,agents_total_pressure
 1.0,0,0.0,0,0.0,0.0,13.930281,0.0,0,0.0,1.0,3
 2.0,0,2.6100133920786917,0,0.0,0.0,13.554883151980327,2.6100133920786917,0,0.0,0.9744252774926883,4
 3.0,0,2.67590227322653,0,0.0,0.0,13.737799501457868,2.67590227322653,0,0.0,0.9775484915968174,5
