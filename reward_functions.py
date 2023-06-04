@@ -47,7 +47,7 @@ def delta_wait_time_reward(ts: TrafficSignal) -> float:
     return reward
 
 
-def combined_reward(ts: TrafficSignal, congestion_reward=delta_wait_time_reward, alpha=0.8) -> float:
+def combined_reward(ts: TrafficSignal, congestion_reward=delta_wait_time_reward, alpha=0.7) -> float:
     """Return the reward summing tyre PM and change in total waiting time.
     
     Keyword arguments
