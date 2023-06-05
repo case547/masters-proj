@@ -20,6 +20,8 @@ import traci
 def run(net_name: str, seed: int):
     """Execute the baseline evaluation via TraCI."""
     csv_dir = os.path.join("no_rl", net_name)
+    if not os.path.exists(csv_dir):
+        os.makedirs(csv_dir)
 
     # Create CSV
     metrics_csv = os.path.join(csv_dir,f"baseline_{seed}.csv")
@@ -54,7 +56,8 @@ def run(net_name: str, seed: int):
 
 def parse_options():
     parser = argparse.ArgumentParser()
-    parser.add_argument("file", help="SUMO configuration file to run")
+    parser.add_argument("-f", "--file", help="SUMO configuration file to run", required=True)
+    parser.add_argument("-n", "--num-seeds", help="number of seeds to run simulations for", default=20)
     parser.add_argument("--gui", action="store_true", help="run the GUI version of sumo")
     return parser.parse_args()
 
@@ -65,6 +68,7 @@ if __name__ == "__main__":
 
     options = parse_options()
     network = PurePath(options.file).parts[-2]
+    num_seeds = options.num_seeds
 
     # When this script is called from the command line, it will start
     # sumo as a server, then connect and run the rest of the code
@@ -76,7 +80,6 @@ if __name__ == "__main__":
     # The normal way of using traci: Sumo is started as a
     # subprocess and then the python script connects and runs
     start_seed = 23423
-    num_seeds = 30
     for rank in range(num_seeds):
         print(f"Starting simulation with seed {start_seed+rank} ({rank+1}/{num_seeds})")
 
