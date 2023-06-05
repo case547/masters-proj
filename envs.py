@@ -211,7 +211,7 @@ class MultiAgentSumoEnv(CountAllRewardsEnv):
 
         # Help completely release SUMO port between episodes to address
         # "Unable to create listening socket: Address already in use" error
-        time.sleep(5)
+        time.sleep(2)
 
         if self.disp is not None:
             self.disp.stop()
