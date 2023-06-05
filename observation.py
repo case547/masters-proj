@@ -40,7 +40,7 @@ def max_neighbours(neighbours: dict):
 
 class SharedObservationFunction(DefaultObservationFunction):
     """Class to share observations between neighbouring traffic signals in multi-agent networks."""
-
+    
     def __init__(self, ts: TrafficSignal, neighbour_dict: dict):
         """Initialise observation function."""
         super().__init__(ts)
@@ -48,45 +48,33 @@ class SharedObservationFunction(DefaultObservationFunction):
         self.num_neighbours = len(neighbour_dict[self.ts.id])
 
     def __call__(self) -> np.ndarray:
-        if not hasattr(self, "last_obs"):
-            self.last_obs = np.zeros(int(self.space_dim/2))
-
         obs = self.ts._observation_fn_default()
 
         neighbour: TrafficSignal  # type hint for VS Code
 
         # Below: checks for self.neighbours before self.traffic_signals because if
-        # self.traffic_signals exists, then self.neighbours will have been created  
+        # self.traffic_signals exists, then self.neighbours must have been created
 
         if hasattr(self, "neighbours"):
             for neighbour in self.neighbours:
                 obs = np.hstack((obs, neighbour._observation_fn_default()))
 
-            return self.pad_and_stack(obs)
+            return pad_to(obs, np.zeros(int(self.space_dim)).shape, 0)
         
         if hasattr(self.ts.env, "traffic_signals"):
             self.neighbours = [self.ts.env.traffic_signals[n_id] for n_id in self.neighbour_dict[self.ts.id]]
 
-        return self.pad_and_stack(obs)
+        return pad_to(obs, np.zeros(int(self.space_dim)).shape, 0)
         
     def observation_space(self) -> spaces.Box:
         """Return the observation space."""
-        # Default observation has shape (21,) for grid2x2
         self.space_dim = (self.ts.num_green_phases + 1 + 2 * len(self.ts.lanes)) \
-                          * (1 + max_neighbours(self.neighbour_dict)) * 2  # x2 because frame stack
+                          * (1 + max_neighbours(self.neighbour_dict))
 
         return spaces.Box(
             low=np.zeros(self.space_dim, dtype=np.float32),
             high=np.ones(self.space_dim, dtype=np.float32),
         )
-    
-    def pad_and_stack(self, observation):
-        observation = pad_to(observation, np.zeros(int(self.space_dim/2)).shape, 0)
-
-        stack = np.hstack((self.last_obs, observation))
-        self.last_obs = observation
-        
-        return stack
     
 
 class Grid2x2ObservationFunction(SharedObservationFunction):
