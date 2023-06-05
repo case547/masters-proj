@@ -17,7 +17,7 @@ def evaluate(
     env: Union[DummyVecEnv, Monitor, VecMonitor],
     csv_path: Optional[str] = None,
     tb_log_dir: Optional[str] = None,
-    n_eval_episodes: int = 10,
+    n_eval_episodes: int = 1,
     deterministic: bool = True,
     render: bool = False,
     callback: Optional[Callable[[Dict[str, Any], Dict[str, Any]], None]] = None,
@@ -89,13 +89,6 @@ def evaluate(
     observations = env.reset()
     states = None
     episode_starts = np.ones((env.num_envs,), dtype=bool)
-
-    # Set up CSV
-    if csv_path:
-        with open(csv_path, "a", encoding="ansi", newline="") as f:
-            csv_writer = csv.writer(f)
-            csv_writer.writerow(["sim_time", "arrived_num", "avg_speed",
-                                 "pressure", "queued", "tyre_pm", "waiting_time"])
     
     listener = SB3Listener(env, csv_path, tb_log_dir)
     traci.addStepListener(listener)
