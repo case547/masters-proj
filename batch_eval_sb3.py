@@ -69,13 +69,15 @@ def run(net_name: str, seed: int, model_path: str):
         writer = csv.writer(f)
         writer.writerow([seed, total_arrived, total_tyre_pm, mean_stopped,
                          mean_total_wait, mean_avg_wait, mean_avg_speed])
+        
+    eval_env.close()
     
 
 def parse_options():
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--folder", help="folder containing a network and route file", required=True)
     parser.add_argument("-m", "--model", help="path to the saved model", required=True)
-    parser.add_argument("-n", "--num-seeds", help="number of random seeds", default=30)
+    parser.add_argument("-n", "--num-seeds", help="number of random seeds", default=20)
     return parser.parse_args()
 
 
