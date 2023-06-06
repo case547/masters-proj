@@ -1,3 +1,5 @@
+from typing import List
+
 from gymnasium import spaces
 import numpy as np
 from sumo_rl.environment.observations import DefaultObservationFunction
@@ -5,11 +7,22 @@ from sumo_rl.environment.traffic_signal import TrafficSignal
 from supersuit.utils.action_transforms.homogenize_ops import pad_to
 
 
+cologne8_neighbours = {
+    '247379907': [],
+    '252017285': [],
+    '256201389': [],
+    '26110729': [],
+    '280120513': ['62426694'],
+    '32319828': [],
+    '62426694': ['280120513'],
+    'cluster_1098574052_1098574061_247379905': []
+}
+
 grid2x2_neighbours = {
     '1': ['2', '5'],
     '2': ['1', '6'],
     '5': ['1', '6'],
-    '6': ['2', '5'],
+    '6': ['2', '5']
 }
 
 grid4x4_neighbours = {
@@ -31,7 +44,7 @@ grid4x4_neighbours = {
     'D0': ['C0','D1'],
     'D1': ['C1','D0','D2'],
     'D2': ['D1','C2','D3'],
-    'D3': ['D2','C3'],
+    'D3': ['D2','C3']
 }
 
 def max_neighbours(neighbours: dict):
@@ -85,3 +98,78 @@ class Grid2x2ObservationFunction(SharedObservationFunction):
 class Grid4x4ObservationFunction(SharedObservationFunction):
     def __init__(self, ts: TrafficSignal):
         super().__init__(ts, grid4x4_neighbours)
+
+class Cologne8ObservationFunction(SharedObservationFunction):
+    def __init__(self, ts: TrafficSignal, max_dist=200):
+        super().__init__(ts, cologne8_neighbours)
+        self.max_dist = max_dist
+
+    def __call__(self) -> np.ndarray:
+        obs = self.independent_observation()
+
+        neighbour: TrafficSignal  # type hint for VS Code
+
+        # Below: checks for self.neighbours before self.traffic_signals because if
+        # self.traffic_signals exists, then self.neighbours must have been created
+
+        if hasattr(self, "neighbours"):
+            for neighbour in self.neighbours:
+                obs = np.hstack((obs, neighbour.observation_fn.independent_observation()))
+
+            return pad_to(obs, np.zeros(int(self.space_dim)).shape, 0)
+        
+        if hasattr(self.ts.env, "traffic_signals"):
+            self.neighbours = [self.ts.env.traffic_signals[n_id] for n_id in self.neighbour_dict[self.ts.id]]
+
+        return pad_to(obs, np.zeros(int(self.space_dim)).shape, 0)
+    
+    def independent_observation(self):
+        phase_id = [1 if self.ts.green_phase == i else 0 for i in range(self.ts.num_green_phases)]  # one-hot encoding
+        min_green = [0 if self.ts.time_since_last_phase_change < self.ts.min_green + self.ts.yellow_time else 1]
+        density = self.get_densities()
+        queue = self.get_queues()
+        observation = np.array(phase_id + min_green + density + queue, dtype=np.float32)
+        return observation
+
+    def get_densities(self) -> List[float]:
+        """Returns the density [0,1] of the vehicles in the incoming lanes of the intersection, bounded by `max_dist`.
+
+        Obs: The density is computed as the number of vehicles divided by the number of vehicles that could fit in the lane.
+        """
+        lanes_density = []
+
+        for lane in self.ts.lanes:
+            num_vehs = len(self.get_vehicles(lane))
+            capacity = min(self.ts.lanes_length[lane], self.max_dist) \
+                       / (self.ts.MIN_GAP + self.ts.sumo.lane.getLastStepLength(lane))
+            lanes_density.append(num_vehs/capacity)
+        
+        return [min(1, density) for density in lanes_density]
+    
+    def get_queues(self) -> List[float]:
+        """Returns the queue [0,1] of the vehicles in the incoming lanes of the intersection, bounded by `max_dist`.
+
+        Obs: The queue is computed as the number of vehicles halting divided by the number of vehicles that could fit in the lane.
+        """
+        lanes_queue = []
+
+        for lane in self.ts.lanes:
+            vehs = self.get_vehicles(lane)
+            halting_num = sum(1 for v in vehs if self.ts.sumo.vehicle.getSpeed(v) < 0.1)
+            capacity = min(self.ts.lanes_length[lane], self.max_dist) \
+                       / (self.ts.MIN_GAP + self.ts.sumo.lane.getLastStepLength(lane))
+            lanes_queue.append(halting_num/capacity)
+        
+        return [min(1, queue) for queue in lanes_queue]
+    
+    def get_vehicles(self, lane) -> List[str]:
+        """Remove undetectable vehicles from a lane."""
+        detectable = []
+        for vehicle in self.sumo.lane.getLastStepVehicleIDs(lane):
+            path = self.sumo.vehicle.getNextTLS(vehicle)
+            if len(path) > 0:
+                next_light = path[0]
+                distance = next_light[2]
+                if distance <= self.max_dist:  # Detectors have a max range
+                    detectable.append(vehicle)
+        return detectable
