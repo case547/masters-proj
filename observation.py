@@ -127,7 +127,6 @@ class Cologne8ObservationFunction(SharedObservationFunction):
             self.neighbours = [self.ts.env.traffic_signals[n_id] for n_id in self.neighbour_dict[self.ts.id]]
 
         obs = pad_to(obs, np.zeros(int(self.space_dim)).shape, 0)
-        print("padded_obs:", obs)
         return obs
     
     def observation_space(self) -> spaces.Box:
