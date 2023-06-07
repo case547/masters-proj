@@ -33,6 +33,7 @@ def env_creator(env_name, begin_time, seed: Optional[int] = None, csv_path: Opti
         "route_file": os.path.join("nets", env_name, f"{env_name}.rou.xml"),
         "begin_time": begin_time,
         "num_seconds": 3600,
+        "waiting_time_memory": 3600,
         "reward_fn": combined_reward,
         "sumo_seed": seed,
         "observation_class": OBS_CLASS,
@@ -83,16 +84,7 @@ def run(net_name: str, seed: int, checkpoint_path: str, begin_time: int):
     )
 
     # Create CSV
-    if not os.path.exists(net_name):
-        os.makedirs(net_name)
-
     metrics_csv = os.path.join(net_name, f"seed_{seed}.csv")
-    with open(metrics_csv, "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["sim_time", "arrived_num", "sys_tyre_pm", "sys_stopped",
-                         "sys_total_wait", "sys_avg_wait", "sys_avg_speed",
-                         "agents_tyre_pm", "agents_stopped", "agents_total_wait",
-                         "agents_avg_speed", "agents_total_pressure"])
 
     register_env(net_name, lambda config: MultiAgentEnvCompatibility(
         env_creator(net_name, begin_time, seed=seed, csv_path=metrics_csv)
@@ -109,17 +101,29 @@ def run(net_name: str, seed: int, checkpoint_path: str, begin_time: int):
     # Collate results
     df = pd.read_csv(metrics_csv)
     total_arrived = sum(df["arrived_num"][:3600])
-    total_tyre_pm = sum(df["sys_tyre_pm"][:3600])
-    mean_stopped = np.mean(df["sys_stopped"][:3600])
-    mean_total_wait = np.mean(df["sys_total_wait"][:3600])
-    mean_avg_wait = np.mean(df["sys_avg_wait"][:3600])
-    mean_avg_speed = np.mean(df["sys_avg_speed"][:3600])
+
+    total_sys_tyre_pm = sum(df["sys_tyre_pm"][:3600])
+    mean_sys_stopped = np.mean(df["sys_stopped"][:3600])
+    mean_sys_total_wait = np.mean(df["sys_total_wait"][:3600])
+    mean_sys_avg_wait = np.mean(df["sys_avg_wait"][:3600])
+    mean_sys_avg_speed = np.mean(df["sys_avg_speed"][:3600])
+
+    total_agents_tyre_pm = sum(df["agents_tyre_pm"][:3600])
+    mean_agents_stopped = np.mean(df["agents_stopped"][:3600])
+    mean_agents_total_delay = np.mean(df["agents_total_delay"][:3600])
+    mean_agents_total_wait = np.mean(df["agents_total_wait"][:3600])
+    mean_agents_avg_delay = np.mean(df["agents_avg_delay"][:3600])
+    mean_agents_avg_wait = np.mean(df["agents_avg_wait"][:3600])
+    mean_agents_avg_speed = np.mean(df["agents_avg_speed"][:3600])
 
     collate_csv = os.path.join(net_name, "collated_results.csv")
     with open(collate_csv, "a", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow([seed, total_arrived, total_tyre_pm, mean_stopped,
-                         mean_total_wait, mean_avg_wait, mean_avg_speed])
+        writer.writerow([seed, total_arrived, total_sys_tyre_pm, mean_sys_stopped,
+                         mean_sys_total_wait, mean_sys_avg_wait, mean_sys_avg_speed,
+                         total_agents_tyre_pm, mean_agents_stopped, mean_agents_total_delay,
+                         mean_agents_total_wait, mean_agents_avg_delay,
+                         mean_agents_avg_wait, mean_agents_avg_speed])
         
     env.close()
     
@@ -129,6 +133,7 @@ def parse_options():
     parser.add_argument("-f", "--folder", help="folder containing a network and route file", required=True)
     parser.add_argument("-m", "--model", help="path to the saved model", required=True)
     parser.add_argument("-n", "--num-seeds", help="number of random seeds", default=20)
+    parser.add_argument("-s", "--start-seed", help="first random seed", default=23423)
     parser.add_argument("--begin-time", help="number of random seeds", default=0)
     return parser.parse_args()
 
@@ -138,8 +143,22 @@ if __name__ == "__main__":
     network = PurePath(options.folder).parts[-1]
     num_seeds = options.num_seeds
     begin_time = options.begin_time
+    start_seed = options.start_seed
 
-    start_seed = 23423
+    # Create results folder
+    if not os.path.exists(network):
+        os.makedirs(network)
+
+    # Write collated results CSV headers
+    collate_csv = os.path.join(network, "collated_results.csv")
+    with open(collate_csv, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["seed", "total_arrived", "total_sys_tyre_pm", "mean_sys_stopped",
+                         "mean_sys_total_wait", "mean_sys_avg_wait", "mean_sys_avg_speed",
+                         "total_agents_tyre_pm", "mean_agents_stopped","mean_agents_total_delay",
+                         "mean_agents_total_wait", "mean_agents_avg_delay",
+                         "mean_agents_avg_wait", "mean_agents_avg_speed"])
+
     for rank in range(num_seeds):
         print(f"Starting simulation with seed {start_seed+rank} ({rank+1}/{num_seeds})")
         run(network, start_seed + rank, options.model, begin_time)

@@ -2,7 +2,7 @@ from collections import Counter
 import csv
 import os
 import time
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
@@ -125,6 +125,22 @@ class MultiAgentSumoEnv(CountAllRewardsEnv):
         self.tyre_pm_agents = 0
         self.arrived_so_far = 0
 
+        # Get traffic lights and lanes they control
+        self.controlled_lanes = []
+        for ts in self.traffic_signals.values():
+            self.controlled_lanes += ts.lanes
+
+        self.max_dist = 200
+
+        if csv_path:
+            with open(csv_path, "a", newline="") as f:
+                csv_writer = csv.writer(f)
+                headers = (["sim_time", "arrived_num", "sys_tyre_pm", "sys_stopped",
+                            "sys_total_wait", "sys_avg_wait", "sys_avg_speed",
+                            "agents_tyre_pm", "agents_stopped", "agents_total_delay", "agents_total_wait",
+                            "agents_avg_delay", "agents_avg_wait", "agents_avg_speed"])
+                csv_writer.writerow(headers)
+
     def _apply_actions(self, actions):
         """Set the next green phase for the traffic signals.
 
@@ -169,7 +185,7 @@ class MultiAgentSumoEnv(CountAllRewardsEnv):
         self.sumo.simulationStep()
 
         if self.eval:
-            # Get system stats
+            # SYSTEM
             vehicles = self.sumo.vehicle.getIDList()
             speeds = [self.sumo.vehicle.getSpeed(veh) for veh in vehicles]
             waiting_times = [self.sumo.vehicle.getWaitingTime(veh) for veh in vehicles]
@@ -186,16 +202,27 @@ class MultiAgentSumoEnv(CountAllRewardsEnv):
                 "mean_speed": 0.0 if len(vehicles) == 0 else np.mean(speeds),
             }
             
-            # Get agent stats
-            agents_tyre_pm = sum(get_tyre_pm(ts) for ts in self.traffic_signals.values())
+            # AGENTS
+            observable_vehs = []
+            for lane in self.controlled_lanes:
+                observable_vehs += self.get_observable_vehs(lane)
+
+            agent_speeds = [self.sumo.vehicle.getSpeed(veh) for veh in observable_vehs]
+            agent_waiting_times = [self.sumo.vehicle.getWaitingTime(veh) for veh in observable_vehs]
+            agent_accum_waits = [self.sumo.vehicle.getAccumulatedWaitingTime(veh) for veh in observable_vehs]
+            
+            agents_tyre_pm = sum(abs(self.sumo.vehicle.getAcceleration(veh)) for veh in observable_vehs)
             self.tyre_pm_agents += agents_tyre_pm
             
             agent_stats = {
                 # ts: TrafficSignal
-                "total_stopped": sum(ts.get_total_queued() for ts in self.traffic_signals.values()),
-                "total_waiting_time": sum(get_total_waiting_time(ts) for ts in self.traffic_signals.values()),
-                "average_speed": np.mean([ts.get_average_speed() for ts in self.traffic_signals.values()]),
-                "total_pressure": sum(-ts.get_pressure() for ts in self.traffic_signals.values())
+                "total_stopped": sum(int(speed < 0.1) for speed in agent_speeds),
+                "total_accum_wait": sum(agent_accum_waits),
+                "total_waiting_time": sum(agent_waiting_times),
+                
+                "avg_accum_wait": 0.0 if len(observable_vehs) == 0 else np.mean(agent_accum_waits),
+                "avg_waiting_time": 0.0 if len(observable_vehs) == 0 else np.mean(agent_waiting_times),
+                "avg_speed": 0.0 if len(observable_vehs) == 0 else np.mean(agent_speeds),
             }
             
             # Log to CSV
@@ -242,3 +269,15 @@ class MultiAgentSumoEnv(CountAllRewardsEnv):
             self.disp = None
 
         self.sumo = None
+
+    def get_observable_vehs(self, lane) -> List[str]:
+        """Remove undetectable vehicles from a lane."""
+        detectable = []
+        for vehicle in self.sumo.lane.getLastStepVehicleIDs(lane):
+            path = self.sumo.vehicle.getNextTLS(vehicle)
+            if len(path) > 0:
+                next_light = path[0]
+                distance = next_light[2]
+                if distance <= self.max_dist:  # Detectors have a max range
+                    detectable.append(vehicle)
+        return detectable
