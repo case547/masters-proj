@@ -83,11 +83,10 @@ def parse_options():
 
 if __name__ == "__main__":
     options = parse_options()
-    print(options)
     network = PurePath(options.folder).parts[-1]
+    num_seeds = options.num_seeds
 
     start_seed = 23423
-    num_seeds = 30
     for rank in range(num_seeds):
         print(f"Starting simulation with seed {start_seed+rank} ({rank+1}/{num_seeds})")
         run(network, start_seed + rank, options.model)
