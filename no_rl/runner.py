@@ -17,12 +17,8 @@ import traci
 #     sys.exit("please declare environment variable 'SUMO_HOME'")
 
 
-def run(net_name: str, seed: int):
+def run(net_name: str, csv_dir, seed: int,):
     """Execute the baseline evaluation via TraCI."""
-    csv_dir = os.path.join("no_rl", net_name)
-    if not os.path.exists(csv_dir):
-        os.makedirs(csv_dir)
-
     # Create CSV
     metrics_csv = os.path.join(csv_dir,f"baseline_{seed}.csv")
     with open(metrics_csv, "w", newline="") as f:
@@ -40,12 +36,12 @@ def run(net_name: str, seed: int):
 
     # Collate results
     df = pd.read_csv(metrics_csv)
-    total_arrived = sum(df["arrived_num"])
-    total_tyre_pm = sum(df["tyre_pm"])
-    mean_stopped = np.mean(df["stopped"])
-    mean_total_wait = np.mean(df["total_wait"])
-    mean_avg_wait = np.mean(df["avg_wait"])
-    mean_avg_speed = np.mean(df["avg_speed"])
+    total_arrived = sum(df["arrived_num"][:3600])
+    total_tyre_pm = sum(df["tyre_pm"][:3600])
+    mean_stopped = np.mean(df["stopped"][:3600])
+    mean_total_wait = np.mean(df["total_wait"][:3600])
+    mean_avg_wait = np.mean(df["avg_wait"][:3600])
+    mean_avg_speed = np.mean(df["avg_speed"][:3600])
 
     collate_csv = os.path.join(csv_dir, "collated_results.csv")
     with open(collate_csv, "a", newline="") as f:
@@ -77,6 +73,17 @@ if __name__ == "__main__":
     else:
         sumo_binary = checkBinary("sumo")
 
+    # Create CSV folder
+    csv_dir = os.path.join("no_rl", network)
+    if not os.path.exists(csv_dir):
+        os.makedirs(csv_dir)
+
+    collate_csv = os.path.join(csv_dir, "collated_results.csv")
+    with open(collate_csv, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["seed", "total_arrived", "total_tyre_pm", "mean_stopped",
+                         "mean_total_wait", "mean_avg_wait", "mean_avg_speed"])
+
     # The normal way of using traci: Sumo is started as a
     # subprocess and then the python script connects and runs
     start_seed = 23423
@@ -84,4 +91,4 @@ if __name__ == "__main__":
         print(f"Starting simulation with seed {start_seed+rank} ({rank+1}/{num_seeds})")
 
         traci.start([sumo_binary, "-c", options.file, "--seed", str(start_seed+rank)])
-        run(network, start_seed + rank)
+        run(network, csv_dir, start_seed + rank)
