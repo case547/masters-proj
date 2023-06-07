@@ -133,7 +133,7 @@ class MultiAgentSumoEnv(CountAllRewardsEnv):
         self.max_dist = 200
 
         if csv_path:
-            with open(csv_path, "a", newline="") as f:
+            with open(csv_path, "w", newline="") as f:
                 csv_writer = csv.writer(f)
                 headers = (["sim_time", "arrived_num", "sys_tyre_pm", "sys_stopped",
                             "sys_total_wait", "sys_avg_wait", "sys_avg_speed",

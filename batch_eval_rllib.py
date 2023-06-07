@@ -22,10 +22,10 @@ from ray.tune.registry import register_env
 #     sys.exit("please declare environment variable 'SUMO_HOME'")
 
 from envs import MultiAgentSumoEnv
-from observation import Grid2x2ObservationFunction
+from observation import Cologne8ObservationFunction
 from reward_functions import combined_reward
 
-OBS_CLASS = Grid2x2ObservationFunction
+OBS_CLASS = Cologne8ObservationFunction
 
 def env_creator(env_name, begin_time, seed: Optional[int] = None, csv_path: Optional[str] = None):
     env_params = {
@@ -142,7 +142,7 @@ if __name__ == "__main__":
     options = parse_options()
     network = PurePath(options.folder).parts[-1]
     num_seeds = options.num_seeds
-    begin_time = options.begin_time
+    begin_time = int(options.begin_time)
     start_seed = options.start_seed
 
     # Create results folder
