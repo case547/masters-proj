@@ -7,8 +7,10 @@ from typing import Optional, Union
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 
+from gymnasium.spaces import Discrete
 from gymnasium.utils import EzPickle
 from pettingzoo.utils import agent_selector
+
 from sumo_rl import SumoEnvironment
 from sumo_rl.environment.env import SumoEnvironmentPZ
 import traci
@@ -123,6 +125,21 @@ class MultiAgentSumoEnv(CountAllRewardsEnv):
         self.tyre_pm_agents = 0
         self.arrived_so_far = 0
 
+    def _apply_actions(self, actions):
+        """Set the next green phase for the traffic signals.
+
+        Actions outside the original action space refer to action value 0.
+
+        Args:
+            actions: dict {ts_id : greenPhase}
+        """
+        for ts, action in actions.items():
+            if self.traffic_signals[ts].time_to_act:
+                n = self.action_spaces(ts).n
+                if action > n - 1:
+                    action = 0
+                self.traffic_signals[ts].set_next_phase(action)
+
     def _compute_info(self):
         info = {"__common__": {"step": self.sim_step}}
         per_agent_info = self._get_per_agent_info()
@@ -140,6 +157,13 @@ class MultiAgentSumoEnv(CountAllRewardsEnv):
             info.update({agent_id: agent_info})
 
         return info
+    
+    @property
+    def action_space(self):
+        """Return the biggest action space of the traffic signal agents."""
+        spaces = [self.action_spaces(ts) for ts in self.traffic_signals]
+        max_n = max([space.n for space in spaces])
+        return Discrete(max_n)
 
     def _sumo_step(self):
         self.sumo.simulationStep()

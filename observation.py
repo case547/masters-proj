@@ -7,16 +7,17 @@ from sumo_rl.environment.traffic_signal import TrafficSignal
 from supersuit.utils.action_transforms.homogenize_ops import pad_to
 
 
-cologne8_neighbours = {
-    '247379907': [],
-    '252017285': [],
-    '256201389': [],
-    '26110729': [],
-    '280120513': ['62426694'],
-    '32319828': [],
-    '62426694': ['280120513'],
-    'cluster_1098574052_1098574061_247379905': []
+cologne8_signals = {
+    '247379907': {'neighbours': [],            'num_lanes': 6, 'num_stages': 4},
+    '252017285': {'neighbours': [],            'num_lanes': 4, 'num_stages': 2},
+    '256201389': {'neighbours': [],            'num_lanes': 3, 'num_stages': 3},
+    '26110729':  {'neighbours': [],            'num_lanes': 6, 'num_stages': 4},
+    '280120513': {'neighbours': ['62426694'],  'num_lanes': 4, 'num_stages': 3},
+    '32319828':  {'neighbours': [],            'num_lanes': 2, 'num_stages': 2},
+    '62426694':  {'neighbours': ['280120513'], 'num_lanes': 4, 'num_stages': 3},
+    'cluster_1098574052_1098574061_247379905': {'neighbours': [], 'num_lanes': 4, 'num_stages': 4}
 }
+
 
 grid2x2_neighbours = {
     '1': ['2', '5'],
@@ -100,9 +101,13 @@ class Grid4x4ObservationFunction(SharedObservationFunction):
         super().__init__(ts, grid4x4_neighbours)
 
 class Cologne8ObservationFunction(SharedObservationFunction):
-    def __init__(self, ts: TrafficSignal, max_dist=200):
+    def __init__(self, ts: TrafficSignal):
+        cologne8_neighbours = {}
+        for k, v in cologne8_signals.items():
+            cologne8_neighbours[k] = v["neighbours"]
+            
         super().__init__(ts, cologne8_neighbours)
-        self.max_dist = max_dist
+        self.max_dist = 200
 
     def __call__(self) -> np.ndarray:
         obs = self.independent_observation()
@@ -121,7 +126,25 @@ class Cologne8ObservationFunction(SharedObservationFunction):
         if hasattr(self.ts.env, "traffic_signals"):
             self.neighbours = [self.ts.env.traffic_signals[n_id] for n_id in self.neighbour_dict[self.ts.id]]
 
-        return pad_to(obs, np.zeros(int(self.space_dim)).shape, 0)
+        obs = pad_to(obs, np.zeros(int(self.space_dim)).shape, 0)
+        return obs
+    
+    def observation_space(self) -> spaces.Box:
+        """Return the observation space."""
+        dims = {}
+
+        for key, val in cologne8_signals.items():
+            num_stages = val["num_stages"]
+            num_lanes = val["num_lanes"]
+            num_neighbours = len(val["neighbours"])
+            dims[key] = (num_stages + 1 + 2 * num_lanes) * (1 + num_neighbours)
+
+        self.space_dim = max(dims.values())
+
+        return spaces.Box(
+            low=np.zeros(self.space_dim, dtype=np.float32),
+            high=np.ones(self.space_dim, dtype=np.float32),
+        )
     
     def independent_observation(self):
         phase_id = [1 if self.ts.green_phase == i else 0 for i in range(self.ts.num_green_phases)]  # one-hot encoding
@@ -165,8 +188,8 @@ class Cologne8ObservationFunction(SharedObservationFunction):
     def get_vehicles(self, lane) -> List[str]:
         """Remove undetectable vehicles from a lane."""
         detectable = []
-        for vehicle in self.sumo.lane.getLastStepVehicleIDs(lane):
-            path = self.sumo.vehicle.getNextTLS(vehicle)
+        for vehicle in self.ts.sumo.lane.getLastStepVehicleIDs(lane):
+            path = self.ts.sumo.vehicle.getNextTLS(vehicle)
             if len(path) > 0:
                 next_light = path[0]
                 distance = next_light[2]
