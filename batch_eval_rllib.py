@@ -83,6 +83,9 @@ def run(net_name: str, seed: int, checkpoint_path: str, begin_time: int):
     )
 
     # Create CSV
+    if not os.path.exists(net_name):
+        os.makedirs(net_name)
+
     metrics_csv = os.path.join(net_name, f"seed_{seed}.csv")
     with open(metrics_csv, "w", newline="") as f:
         writer = csv.writer(f)
@@ -91,7 +94,9 @@ def run(net_name: str, seed: int, checkpoint_path: str, begin_time: int):
                          "agents_tyre_pm", "agents_stopped", "agents_total_wait",
                          "agents_avg_speed", "agents_total_pressure"])
 
-    register_env(net_name, lambda config: MultiAgentEnvCompatibility(env_creator(net_name, seed, metrics_csv)))
+    register_env(net_name, lambda config: MultiAgentEnvCompatibility(
+        env_creator(net_name, begin_time, seed=seed, csv_path=metrics_csv)
+    ))
     ray.init()
 
     checkpoint_path = os.path.abspath(checkpoint_path)
